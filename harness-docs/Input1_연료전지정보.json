@@ -1,0 +1,23 @@
+{
+  "sets": [
+    {
+      "set_id": "Set-1",
+      "형식": null,
+      "제조사": null,
+      "모델": null,
+      "발전용량_kW": null,
+      "열생산용량_kW": null,
+      "설치수량": null
+    },
+    {
+      "set_id": "Set-2",
+      "형식": null,
+      "제조사": null,
+      "모델": null,
+      "발전용량_kW": null,
+      "열생산용량_kW": null,
+      "설치수량": null
+    }
+  ],
+  "총설치용량_kW": null
+}

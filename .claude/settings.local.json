@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Read(//c/Users/jlaw8/**)",
+      "Bash(curl -sI https://github.com/jlaw080-ops/FC_Economic_Evaluator_Harness)",
+      "Bash(curl -sI https://github.com/jlaw080-ops/fuel-cell-app)",
+      "Bash(git -C /c/Users/jlaw8/dev/fuel-cell-app branch --show-current)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
