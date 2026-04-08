@@ -27,7 +27,9 @@
       "Bash(npx --yes shadcn@latest init --yes)",
       "Bash(printf '\\\\n\\\\n\\\\n\\\\n\\\\n')",
       "Bash(npx --yes shadcn@latest init --help)",
-      "Bash(npx --yes shadcn@latest init -d -b radix)"
+      "Bash(npx --yes shadcn@latest init -d -b radix)",
+      "Bash(npx --yes shadcn@latest add input card table dialog label -y)",
+      "Bash(npx --yes shadcn@latest add input card table dialog label -y --overwrite)"
     ]
   }
 }
