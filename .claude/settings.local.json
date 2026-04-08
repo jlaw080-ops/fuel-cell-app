@@ -22,7 +22,12 @@
       "Bash(git commit -m 'feat\\(gemini\\): switch to gemini-2.5-pro for deeper review:*)",
       "Bash(npm uninstall:*)",
       "Bash(git rm:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx --yes shadcn@latest init --base-color zinc --yes)",
+      "Bash(npx --yes shadcn@latest init --yes)",
+      "Bash(printf '\\\\n\\\\n\\\\n\\\\n\\\\n')",
+      "Bash(npx --yes shadcn@latest init --help)",
+      "Bash(npx --yes shadcn@latest init -d -b radix)"
     ]
   }
 }
