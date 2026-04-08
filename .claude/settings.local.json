@@ -7,7 +7,16 @@
       "Bash(curl -sI https://github.com/jlaw080-ops/fuel-cell-app)",
       "Bash(git -C /c/Users/jlaw8/dev/fuel-cell-app branch --show-current)",
       "Bash(git branch:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git remote:*)",
+      "Bash(git push:*)",
+      "Bash(vercel whoami:*)",
+      "Bash(npm i:*)",
+      "Bash(npx supabase:*)",
+      "Bash(SUPABASE_DB_PASSWORD='Jh!0082501Boa' npx supabase link --project-ref gdiwewatuwzfopzpdnfj)",
+      "Bash(SUPABASE_ACCESS_TOKEN='sbp_e6f7aab1ab50708728babc8c242a3a57b1c756a1' SUPABASE_DB_PASSWORD='Jh!0082501Boa' npx supabase link --project-ref gdiwewatuwzfopzpdnfj)",
+      "Bash(SUPABASE_ACCESS_TOKEN='sbp_e6f7aab1ab50708728babc8c242a3a57b1c756a1' SUPABASE_DB_PASSWORD='Jh!0082501Boa' npx supabase db push)"
     ]
   }
 }

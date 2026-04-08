@@ -9,6 +9,8 @@
 
 ## 1. 이번 세션 요약
 
+> **업데이트 (2026-04-08)**: Phase 2 작업 2-1 ~ 2-10 **전체 완료**. 입력 화면(연료전지 정보 + 운전시간) 구현, Server Action 저장/복원 라운드트립 수동 검증 OK. 다음 세션은 **Phase 3 계산 로직(LCOE/경제성)** 부터 시작.
+
 Phase 1 보류 항목 3개를 모두 해소하고, Phase 2 계획 수립 후 작업 2-1 ~ 2-5까지 완료. 다음 세션은 **2-6 Server Actions**부터 이어가면 됨.
 
 ---
@@ -160,7 +162,34 @@ npx supabase db push                                       # 마이그레이션 
 
 ---
 
-## 8. 미완료 작업 (다음 세션 시작점)
+## 8. Phase 2 완료 작업 (2-6 ~ 2-10)
+
+> 본 섹션은 원래 "미완료 작업"이었으나 모두 완료되어 기록으로 보존.
+
+### 검증 (최종)
+
+- `npm run lint` ✅
+- `npm run test` ✅ **34/34**
+- `npm run build` ✅
+- 로컬 dev 라운드트립 (저장 → 새로고침 복원) ✅ 사용자 확인
+
+### 주요 산출물
+
+- [src/lib/actions/inputs.ts](src/lib/actions/inputs.ts) — `saveFuelCellInput`, `saveOperationInput`, `loadLatestInputs`. 캐싱 미적용(`updateTag` 생략), 반환은 `{ok,data}|{ok,error}`.
+- [src/components/inputs/FuelCellSetRow.tsx](src/components/inputs/FuelCellSetRow.tsx) — 캐스케이딩 드롭다운(형식→제조사→모델), 모델 선택 시 발전·열용량 자동 채움.
+- [src/components/inputs/FuelCellSetList.tsx](src/components/inputs/FuelCellSetList.tsx) — 세트 추가/삭제, 총설치용량 자동 합산.
+- [src/components/inputs/OperationProfileSelector.tsx](src/components/inputs/OperationProfileSelector.tsx) — 운전유형 + 월별 가동일 read-only + 24h 합계 검증. **기본값 16h(중간) / 8h(최대)**.
+- [src/components/tabs/InputScreen.tsx](src/components/tabs/InputScreen.tsx) — 통합 클라이언트 컴포넌트. clientId 확보, 마운트 시 복원, `useTransition` 저장, inline 메시지.
+- [src/app/page.tsx](src/app/page.tsx) — Server Component, 라이브러리 4종 중 fuelCell/operation 로드 후 InputScreen 주입.
+- [src/components/tabs/Tab1Input.tsx](src/components/tabs/Tab1Input.tsx) — 2-7 작성된 단일 컨테이너. 현재 InputScreen으로 대체되어 **미사용** (Phase 3 또는 정리 시 삭제 결정).
+- 신규 컴포넌트 테스트: `__tests__/FuelCellSetRow.test.tsx`(5), `__tests__/OperationProfileSelector.test.tsx`(5)
+
+### React 19 특이사항 (해소 기록)
+
+- `react-hooks/set-state-in-effect` 룰: useEffect 본문에서 직접 setState 금지. → 모든 setState를 `Promise.then()` 콜백 내부로 이동하여 회피 (InputScreen.tsx)
+- `useCallback`으로 자식 onChange 안정화하여 자식의 useEffect 무한 루프 방지
+
+### 원본 계획 (참고용)
 
 [phase2-input-screen.md](harness-docs/docs/exec-plans/active/phase2-input-screen.md)의 작업 2-6 ~ 2-10:
 
@@ -216,14 +245,15 @@ npx supabase db push                                       # 마이그레이션 
 
 ---
 
-## 10. 다음 세션 체크리스트
+## 10. 다음 세션 체크리스트 (Phase 3 시작)
 
-1. **보안 후속 조치**: Supabase 토큰 revoke + DB 패스워드 reset (위 §5 참조)
+1. **보안 후속 조치**: Supabase 토큰 revoke + DB 패스워드 reset (위 §5 참조) — **여전히 미처리 시 우선 처리**
 2. 작업 디렉토리: `c:/Users/jlaw8/dev/fuel-cell-app/`
 3. 본 핸드오프 + [phase2-input-screen.md](harness-docs/docs/exec-plans/active/phase2-input-screen.md) + [nextjs16-notes.md](harness-docs/docs/nextjs16-notes.md) 우선 읽기
-4. **2-6 Server Actions부터 시작** — `src/lib/actions/inputs.ts` 작성
-5. 미커밋 변경사항 인지 (`git status`)
-6. 새 Supabase 토큰 발급 후 환경변수로 1회성 사용 (db push 필요 시)
+4. **Phase 3 계획 수립** — 계산 로직(LCOE, 경제성, 가스소비량/연간 발전량/CO2 절감 등). 신규 exec-plan 작성 권장.
+5. 입력 스키마([src/lib/schemas/inputs.ts](src/lib/schemas/inputs.ts))와 라이브러리 스키마([src/lib/schemas/library.ts](src/lib/schemas/library.ts))를 출발점으로, 계산 함수는 `src/lib/calc/` 하위에 순수 함수로 작성.
+6. 본 세션 작업물은 **모두 커밋 완료** (`f8479bc` + Phase 2 마무리 커밋).
+7. 미사용 파일 [src/components/tabs/Tab1Input.tsx](src/components/tabs/Tab1Input.tsx) 정리 여부 결정.
 
 ---
 

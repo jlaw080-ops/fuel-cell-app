@@ -54,8 +54,8 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
   const [state, setState] = useState<OperationInputState>(() => ({
     연간운전유형: initial?.연간운전유형 ?? null,
     연간운전일수: initial?.연간운전일수 ?? null,
-    일일_중간부하_운전시간: initial?.일일_중간부하_운전시간 ?? 0,
-    일일_최대부하_운전시간: initial?.일일_최대부하_운전시간 ?? 0,
+    일일_중간부하_운전시간: initial?.일일_중간부하_운전시간 ?? 16,
+    일일_최대부하_운전시간: initial?.일일_최대부하_운전시간 ?? 8,
   }));
 
   const profile = state.연간운전유형 ? library[state.연간운전유형] : null;
