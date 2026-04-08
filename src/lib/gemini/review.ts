@@ -12,7 +12,7 @@ export type AiReviewResult =
   | { ok: true; review: string }
   | { ok: false; reason: 'no_key' | 'api_error'; error?: string };
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-2.5-pro';
 
 export async function generateAiReview(snapshot: ReportSnapshot): Promise<AiReviewResult> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -29,8 +29,7 @@ export async function generateAiReview(snapshot: ReportSnapshot): Promise<AiRevi
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 2048,
-            thinkingConfig: { thinkingBudget: 0 },
+            maxOutputTokens: 4096,
           },
         }),
       },
