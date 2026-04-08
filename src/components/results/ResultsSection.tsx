@@ -6,7 +6,8 @@
  * 입력값 + 4종 라이브러리를 받아 클라이언트 측 useMemo로 계산,
  * 유효한 경우에만 결과 표/카드를 렌더링.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import type { FuelCellLibrary } from '@/types/fuelCell';
 import type { OperationLibrary } from '@/types/operation';
 import type { ElectricityTariffLibrary, GasTariffLibrary } from '@/types/tariff';
@@ -14,6 +15,9 @@ import type { FuelCellInputSet, OperationInput } from '@/types/inputs';
 import { calcEnergyProduction } from '@/lib/calc/energy/production';
 import { calcEnergyRevenue } from '@/lib/calc/revenue/revenue';
 import { calcEconomics, calcPaybackYears } from '@/lib/calc/economics/economics';
+import { buildReportSnapshot, saveReportDraftLocal } from '@/lib/report/buildSnapshot';
+import { saveReport } from '@/lib/actions/reports';
+import { getClientId } from '@/lib/session/clientId';
 import { EnergyProductionTable } from './EnergyProductionTable';
 import { RevenueTable } from './RevenueTable';
 import {
@@ -44,6 +48,9 @@ export function ResultsSection({
   libraries,
 }: Props) {
   const [settings, setSettings] = useState<EconomicsSettings>(DEFAULT_SETTINGS);
+  const router = useRouter();
+  const [saving, startSave] = useTransition();
+  const [saveErr, setSaveErr] = useState<string | null>(null);
 
   const computed = useMemo(() => {
     if (!operationValid || !operation || fuelCellSets.length === 0 || fuelCellTotal <= 0) {
@@ -86,9 +93,59 @@ export function ResultsSection({
     );
   }
 
+  function openReport(persist: boolean) {
+    if (!computed || !operation) return;
+    setSaveErr(null);
+    const snapshot = buildReportSnapshot({
+      fuelCell: { sets: fuelCellSets, 총설치용량_kW: fuelCellTotal },
+      operation,
+      settings,
+      production: computed.production,
+      revenue: computed.revenue,
+      economics: computed.econ,
+      paybackYears: computed.payback,
+    });
+    saveReportDraftLocal(snapshot);
+    if (!persist) {
+      router.push('/report');
+      return;
+    }
+    startSave(async () => {
+      const clientId = getClientId() ?? '';
+      const res = await saveReport(clientId, snapshot);
+      if (res.ok) {
+        router.push(`/report?id=${res.id}`);
+      } else {
+        setSaveErr(res.error);
+      }
+    });
+  }
+
   return (
     <div className="space-y-8">
       <EconomicsSettingsPanel value={settings} onChange={setSettings} />
+
+      <div className="flex items-center gap-3 border border-zinc-200 rounded p-4 bg-zinc-50">
+        <span className="text-sm text-zinc-700 flex-1">
+          리포트를 A4 형식으로 보고 PDF로 저장할 수 있습니다.
+        </span>
+        <button
+          type="button"
+          onClick={() => openReport(false)}
+          className="px-3 py-2 border border-zinc-300 rounded text-sm bg-white hover:bg-zinc-50"
+        >
+          미리보기
+        </button>
+        <button
+          type="button"
+          onClick={() => openReport(true)}
+          disabled={saving}
+          className="px-3 py-2 bg-zinc-900 text-white rounded text-sm disabled:opacity-50"
+        >
+          {saving ? '저장 중...' : '저장 + 리포트 보기'}
+        </button>
+      </div>
+      {saveErr && <div className="text-sm text-red-600">{saveErr}</div>}
 
       <section className="space-y-3">
         <h3 className="text-lg font-semibold">에너지 산출</h3>

@@ -1,0 +1,117 @@
+/* Phase 5c — 리포트 인쇄(A4 세로) 전용 스타일 */
+
+.report-root {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 16mm 18mm;
+  background: white;
+  color: #111;
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+.report-page {
+  page-break-after: always;
+}
+
+.report-page:last-child {
+  page-break-after: auto;
+}
+
+.report-root h1 {
+  font-size: 20pt;
+  font-weight: 700;
+  margin-bottom: 6pt;
+}
+
+.report-root h2 {
+  font-size: 14pt;
+  font-weight: 700;
+  margin-top: 14pt;
+  margin-bottom: 6pt;
+  border-bottom: 1px solid #999;
+  padding-bottom: 2pt;
+}
+
+.report-root h3 {
+  font-size: 12pt;
+  font-weight: 600;
+  margin-top: 10pt;
+  margin-bottom: 4pt;
+}
+
+.report-root table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+.report-root th,
+.report-root td {
+  border: 1px solid #ccc;
+  padding: 3pt 5pt;
+  text-align: right;
+}
+
+.report-root th {
+  background: #f0f0f0;
+  font-weight: 600;
+  text-align: center;
+}
+
+.report-root td:first-child,
+.report-root th:first-child {
+  text-align: left;
+}
+
+.report-root tfoot {
+  background: #f8f8f8;
+  font-weight: 600;
+}
+
+.report-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8pt;
+  margin: 8pt 0;
+}
+
+.report-card {
+  border: 1px solid #ccc;
+  padding: 6pt 8pt;
+  background: #f9f9f9;
+}
+
+.report-card .label {
+  font-size: 8pt;
+  color: #666;
+}
+
+.report-card .value {
+  font-size: 13pt;
+  font-weight: 700;
+  margin-top: 2pt;
+}
+
+.report-meta {
+  color: #666;
+  font-size: 9pt;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .report-root {
+    padding: 0;
+    max-width: none;
+  }
+  body {
+    background: white !important;
+  }
+}
