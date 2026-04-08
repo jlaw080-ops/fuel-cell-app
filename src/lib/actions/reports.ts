@@ -8,7 +8,21 @@
  */
 import { randomUUID } from 'crypto';
 import { supabaseServer } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase/serverWithAuth';
 import { reportSnapshotSchema, type ReportSnapshot } from '@/lib/schemas/report';
+
+/**
+ * Phase 6e-2 — 현재 세션 사용자를 반환. 로그인 상태면 cookie 기반
+ * authenticated 클라이언트와 userId를, 아니면 익명 클라이언트만 반환.
+ */
+async function getAuthedClient() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) return { supabase, userId: user.id as string };
+  return { supabase: supabaseServer, userId: null as string | null };
+}
 
 type SaveOk = { ok: true; id: string };
 type LoadOk = {
@@ -52,11 +66,13 @@ export async function saveReport(
   }
 
   const id = randomUUID();
-  const { error } = await supabaseServer.from('reports').insert({
+  const { supabase, userId } = await getAuthedClient();
+  const { error } = await supabase.from('reports').insert({
     id,
     client_id: clientId,
     payload: parsed.data,
     title: sanitizeTitle(title),
+    user_id: userId, // null 이면 anon 정책, 값이 있으면 authenticated 정책
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true, id };
@@ -67,20 +83,22 @@ export async function renameReport(
   clientId: string,
   title: string,
 ): Promise<{ ok: true; title: string | null } | Err> {
-  if (!id || !clientId) return { ok: false, error: 'id/clientId가 필요합니다.' };
+  if (!id) return { ok: false, error: 'id가 필요합니다.' };
   const next = sanitizeTitle(title);
-  const { error } = await supabaseServer
-    .from('reports')
-    .update({ title: next })
-    .eq('id', id)
-    .eq('client_id', clientId);
+  const { supabase, userId } = await getAuthedClient();
+  let q = supabase.from('reports').update({ title: next }).eq('id', id);
+  if (!userId) {
+    if (!clientId) return { ok: false, error: 'clientId가 필요합니다.' };
+    q = q.eq('client_id', clientId);
+  }
+  const { error } = await q;
   if (error) return { ok: false, error: error.message };
   return { ok: true, title: next };
 }
 
 export async function loadReport(id: string): Promise<LoadOk | Err> {
   if (!id) return { ok: false, error: 'id가 필요합니다.' };
-  const supabase = supabaseServer;
+  const { supabase } = await getAuthedClient();
   const { data, error } = await supabase
     .from('reports')
     .select('payload, ai_review, created_at, title')
@@ -106,14 +124,19 @@ export async function loadReport(id: string): Promise<LoadOk | Err> {
 }
 
 export async function listReports(clientId: string): Promise<ListOk | Err> {
-  if (!clientId) return { ok: false, error: 'clientId가 필요합니다.' };
-  const supabase = supabaseServer;
-  const { data, error } = await supabase
+  const { supabase, userId } = await getAuthedClient();
+  // 로그인 시: RLS가 user_id = auth.uid() 로 자동 필터 (client_id 무시)
+  // 비로그인 시: 기존 client_id 기반 필터
+  let query = supabase
     .from('reports')
     .select('id, payload, created_at, title')
-    .eq('client_id', clientId)
     .order('created_at', { ascending: false })
     .limit(100);
+  if (!userId) {
+    if (!clientId) return { ok: false, error: 'clientId가 필요합니다.' };
+    query = query.eq('client_id', clientId);
+  }
+  const { data, error } = await query;
   if (error) return { ok: false, error: error.message };
 
   const items: ReportListItem[] = (data ?? []).map((row) => {
@@ -133,19 +156,51 @@ export async function listReports(clientId: string): Promise<ListOk | Err> {
 }
 
 export async function deleteReport(id: string, clientId: string): Promise<{ ok: true } | Err> {
-  if (!id || !clientId) return { ok: false, error: 'id/clientId가 필요합니다.' };
-  const { error } = await supabaseServer
-    .from('reports')
-    .delete()
-    .eq('id', id)
-    .eq('client_id', clientId);
+  if (!id) return { ok: false, error: 'id가 필요합니다.' };
+  const { supabase, userId } = await getAuthedClient();
+  let q = supabase.from('reports').delete().eq('id', id);
+  if (!userId) {
+    if (!clientId) return { ok: false, error: 'clientId가 필요합니다.' };
+    q = q.eq('client_id', clientId);
+  }
+  const { error } = await q;
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
 
+/**
+ * Phase 6e-2 — 첫 로그인 직후 호출. 이 브라우저(clientId)가 anon 상태에서
+ * 저장했던 리포트를 현재 로그인 사용자 계정으로 이전한다.
+ *
+ * 사용 정책: `auth_claim_anon` (마이그레이션 20260409000001) —
+ *   USING (user_id is null) WITH CHECK (user_id = auth.uid())
+ *
+ * 필터: client_id 는 브라우저 localStorage 에 있는 UUID 라 타 사용자가
+ * 추측하기 어렵지만, 서버에서도 명시적으로 제한한다.
+ */
+export async function claimAnonReports(
+  clientId: string,
+): Promise<{ ok: true; claimed: number } | Err> {
+  if (!clientId) return { ok: false, error: 'clientId가 필요합니다.' };
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: '로그인이 필요합니다.' };
+
+  const { data, error } = await supabase
+    .from('reports')
+    .update({ user_id: user.id })
+    .is('user_id', null)
+    .eq('client_id', clientId)
+    .select('id');
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, claimed: (data ?? []).length };
+}
+
 export async function saveAiReview(id: string, review: string): Promise<{ ok: true } | Err> {
   if (!id) return { ok: false, error: 'id가 필요합니다.' };
-  const supabase = supabaseServer;
+  const { supabase } = await getAuthedClient();
   const { error } = await supabase.from('reports').update({ ai_review: review }).eq('id', id);
   if (error) return { ok: false, error: error.message };
   return { ok: true };

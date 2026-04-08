@@ -1,6 +1,6 @@
-# Phase 6 작업 인수인계 (Handoff) — 진행 중
+# Phase 6 작업 인수인계 (Handoff) — 완료
 
-> 작성일: 2026-04-08
+> 작성일: 2026-04-08 (6e-2 완료: 2026-04-09)
 > 세션: Claude Code (Opus 4.6)
 > 작업 디렉토리: `c:/Users/jlaw8/dev/fuel-cell-app/`
 > 이전 핸드오프: [PHASE5_HANDOFF.md](PHASE5_HANDOFF.md)
@@ -12,15 +12,15 @@
 Phase 6 후보 5개 중 **4개 완료** (1·2·3·4) + **1개 인프라만 완료** (5 = 6e-1).
 Phase 6e-2(Auth 적용)는 다음 세션에서 진행.
 
-| 단계                                 | 내용                                                | 상태        | 커밋      |
-| ------------------------------------ | --------------------------------------------------- | ----------- | --------- |
-| **6a** 리포트 목록 + 앱으로 불러오기 | `/reports` 페이지, `?reportId=`로 입력 화면 복원    | ✅          | `53e8f87` |
-| **6a+** 제목 + 인라인 rename         | reports.title 컬럼, 클릭 편집                       | ✅          | `4470f68` |
-| **6b** 차트 (recharts)               | 월별 발전/수익 막대 + 20년 누적 라인                | ✅          | `d29adb0` |
-| **6c** 시나리오 비교                 | `/reports/compare?ids=...`, 체크박스 선택           | ✅          | `d29adb0` |
-| **6d** shadcn/ui 도입                | install + 6 primitive (사용 보류)                   | ✅          | `4fc0ad7` |
-| **6e-1** Auth 인프라                 | Magic Link, RLS 갱신, 미들웨어                      | ✅          | `fb84fa0` |
-| **6e-2** Auth 적용                   | saveReport/listReports user_id 연동, anon→user 흡수 | ⏸ 다음 세션 | —         |
+| 단계                                 | 내용                                                | 상태 | 커밋      |
+| ------------------------------------ | --------------------------------------------------- | ---- | --------- |
+| **6a** 리포트 목록 + 앱으로 불러오기 | `/reports` 페이지, `?reportId=`로 입력 화면 복원    | ✅   | `53e8f87` |
+| **6a+** 제목 + 인라인 rename         | reports.title 컬럼, 클릭 편집                       | ✅   | `4470f68` |
+| **6b** 차트 (recharts)               | 월별 발전/수익 막대 + 20년 누적 라인                | ✅   | `d29adb0` |
+| **6c** 시나리오 비교                 | `/reports/compare?ids=...`, 체크박스 선택           | ✅   | `d29adb0` |
+| **6d** shadcn/ui 도입                | install + 6 primitive (사용 보류)                   | ✅   | `4fc0ad7` |
+| **6e-1** Auth 인프라                 | Magic Link, RLS 갱신, 미들웨어                      | ✅   | `fb84fa0` |
+| **6e-2** Auth 적용                   | saveReport/listReports user_id 연동, anon→user 흡수 | ✅   | (이번)    |
 
 ---
 

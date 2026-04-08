@@ -2,6 +2,7 @@ import { loadAllLibraries } from '@/lib/data/loadLibraries';
 import { InputScreen } from '@/components/tabs/InputScreen';
 import Link from 'next/link';
 import { getCurrentUser, signOut } from '@/lib/actions/auth';
+import { ClaimBanner } from '@/components/auth/ClaimBanner';
 
 interface PageProps {
   searchParams: Promise<{ reportId?: string }>;
@@ -34,6 +35,7 @@ export default async function Home({ searchParams }: PageProps) {
           )}
         </div>
       </div>
+      {user ? <ClaimBanner userId={user.id} /> : null}
       <InputScreen libraries={libraries} reportId={reportId ?? null} />
     </main>
   );
