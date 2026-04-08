@@ -27,6 +27,7 @@ export function ReportsList() {
   const [pending, startTransition] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const id = getClientId() ?? '';
@@ -96,6 +97,14 @@ export function ReportsList() {
           ← 입력 화면으로
         </Link>
         <span className="flex-1" />
+        {selected.size >= 2 && (
+          <Link
+            href={`/reports/compare?ids=${Array.from(selected).join(',')}`}
+            className="px-3 py-1.5 bg-zinc-900 text-white rounded text-xs"
+          >
+            선택한 {selected.size}건 비교
+          </Link>
+        )}
         <span className="text-xs text-zinc-500">총 {items.length}건</span>
       </div>
 
@@ -107,6 +116,7 @@ export function ReportsList() {
         <table className="w-full text-sm border border-zinc-200">
           <thead className="bg-zinc-50">
             <tr>
+              <th className="px-2 py-2 w-8"></th>
               <th className="px-3 py-2 text-left">제목</th>
               <th className="px-3 py-2 text-left">저장일시</th>
               <th className="px-3 py-2 text-right">총 용량</th>
@@ -119,6 +129,20 @@ export function ReportsList() {
           <tbody>
             {items.map((r) => (
               <tr key={r.id} className="border-t border-zinc-200">
+                <td className="px-2 py-2 text-center">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(r.id)}
+                    onChange={(e) => {
+                      setSelected((prev) => {
+                        const next = new Set(prev);
+                        if (e.target.checked) next.add(r.id);
+                        else next.delete(r.id);
+                        return next;
+                      });
+                    }}
+                  />
+                </td>
                 <td className="px-3 py-2">
                   {editingId === r.id ? (
                     <div className="flex items-center gap-1">

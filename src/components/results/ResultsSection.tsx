@@ -26,6 +26,7 @@ import {
   type EconomicsSettings,
 } from './EconomicsSettingsPanel';
 import { EconomicsResult } from './EconomicsResult';
+import { ReportCharts } from '@/components/charts/ReportCharts';
 
 interface Props {
   fuelCellSets: FuelCellInputSet[];
@@ -189,6 +190,20 @@ export function ResultsSection({
       <section className="space-y-3">
         <h3 className="text-lg font-semibold">경제성 분석</h3>
         <EconomicsResult result={computed.econ} payback={computed.payback} />
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-lg font-semibold">시각화</h3>
+        <ReportCharts
+          snapshot={{
+            results: {
+              production: computed.production,
+              revenue: computed.revenue,
+              economics: computed.econ,
+              paybackYears: computed.payback,
+            },
+          }}
+        />
       </section>
     </div>
   );

@@ -13,6 +13,7 @@
  */
 import type { ReportSnapshot } from '@/lib/schemas/report';
 import { fmtWon, fmtWonPerKWh, fmtYears, fmtPct, fmtKW, fmtKWh, fmtInt } from '@/lib/format';
+import { ReportCharts } from '@/components/charts/ReportCharts';
 
 interface Props {
   snapshot: ReportSnapshot;
@@ -279,9 +280,15 @@ export function ReportDocument({ snapshot, aiReview, aiLoading, aiSkipped }: Pro
         </table>
       </section>
 
-      {/* 6. AI 검토 */}
+      {/* 6. 차트 */}
       <section className="report-page">
-        <h2>5. AI 검토 의견</h2>
+        <h2>5. 시각화</h2>
+        <ReportCharts snapshot={snapshot} />
+      </section>
+
+      {/* 7. AI 검토 */}
+      <section className="report-page">
+        <h2>6. AI 검토 의견</h2>
         {aiLoading && <p className="text-zinc-500">AI 검토 의견 생성 중...</p>}
         {aiReview && <p style={{ whiteSpace: 'pre-wrap' }}>{aiReview}</p>}
         {aiSkipped && !aiReview && (

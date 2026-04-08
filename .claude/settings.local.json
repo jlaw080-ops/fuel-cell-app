@@ -21,7 +21,8 @@
       "Bash(git commit -m 'fix\\(gemini\\): disable thinking and raise output tokens to prevent truncation:*)",
       "Bash(git commit -m 'feat\\(gemini\\): switch to gemini-2.5-pro for deeper review:*)",
       "Bash(npm uninstall:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(npm install:*)"
     ]
   }
 }
