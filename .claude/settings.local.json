@@ -19,7 +19,9 @@
       "Bash(SUPABASE_ACCESS_TOKEN='sbp_e6f7aab1ab50708728babc8c242a3a57b1c756a1' SUPABASE_DB_PASSWORD='Jh!0082501Boa' npx supabase db push)",
       "Bash(npx vitest:*)",
       "Bash(git commit -m 'fix\\(gemini\\): disable thinking and raise output tokens to prevent truncation:*)",
-      "Bash(git commit -m 'feat\\(gemini\\): switch to gemini-2.5-pro for deeper review:*)"
+      "Bash(git commit -m 'feat\\(gemini\\): switch to gemini-2.5-pro for deeper review:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
