@@ -3,7 +3,7 @@
 /**
  * 연료전지 세트 목록 — 추가/삭제, 총설치용량 자동 계산.
  *
- * 저장 액션 호출은 부모(Tab1Input → page)에서 useActionState로 묶는다.
+ * 저장 액션 호출은 부모(InputScreen)에서 useTransition으로 묶는다.
  * 본 컴포넌트는 onChange로 현재 입력 상태를 통지한다.
  */
 import { useEffect, useState } from 'react';

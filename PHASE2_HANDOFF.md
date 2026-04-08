@@ -273,3 +273,72 @@ npx supabase status
 SUPABASE_ACCESS_TOKEN='...' SUPABASE_DB_PASSWORD='...' npx supabase db push
 SUPABASE_ACCESS_TOKEN='...' npx supabase migration new <name>
 ```
+
+---
+
+## 12. 세션 추가 기록 (2026-04-08)
+
+> 본 섹션은 위 §1 이후 동일 세션 연장 작업의 진행 로그.
+
+### 12.1 작업 2-6 Server Actions 완료
+
+- [src/lib/actions/inputs.ts](src/lib/actions/inputs.ts) 신규
+  - `saveFuelCellInput(clientId, raw)` / `saveOperationInput(clientId, raw)` / `loadLatestInputs(clientId)`
+  - 모든 함수 내부 zod 검증 (Server Function 직접 POST 가능성 대비)
+  - 반환 타입: `{ ok: true, data } | { ok: false, error }` — `useActionState`/UI 친화적
+  - **캐싱 미적용** 결정 (clientId별 데이터 → 캐시 효용 낮음). 따라서 `updateTag` 호출도 생략. 클라이언트는 저장 후 다시 `loadLatestInputs` 호출 패턴.
+  - `loadLatestInputs`에서 두 테이블 `Promise.all` 병렬 조회. 저장된 payload는 다시 zod 파싱하여 스키마 변경 시 깨진 데이터 `null`로 안전 처리.
+- [src/lib/actions/**tests**/inputs.test.ts](src/lib/actions/__tests__/inputs.test.ts) — 10 케이스, Supabase 체이너블 빌더 모킹
+
+### 12.2 작업 2-7 Input1 컴포넌트 완료
+
+- [src/components/inputs/FuelCellSetRow.tsx](src/components/inputs/FuelCellSetRow.tsx) — `'use client'`, 캐스케이딩 드롭다운(형식→제조사→모델), 모델 선택 시 발전·열용량 자동 채움
+- [src/components/inputs/FuelCellSetList.tsx](src/components/inputs/FuelCellSetList.tsx) — `'use client'`, 세트 추가/삭제, 총설치용량 자동 합산, `onChange` 콜백
+- [src/components/tabs/Tab1Input.tsx](src/components/tabs/Tab1Input.tsx) — Server Component (이후 InputScreen으로 대체되어 미사용)
+
+### 12.3 작업 2-8 Input2 컴포넌트 완료
+
+- [src/components/inputs/OperationProfileSelector.tsx](src/components/inputs/OperationProfileSelector.tsx) — `'use client'`, 운전유형 드롭다운, 월별 가동일 12칸 read-only 표시, 일일 중간/최대 운전시간 입력 + 24h 합계 검증
+- 사용자 요청 반영: **기본값 16h(중간) / 8h(최대)** 적용
+
+### 12.4 작업 2-9 페이지 통합 완료
+
+- [src/components/tabs/InputScreen.tsx](src/components/tabs/InputScreen.tsx) 신규 — 통합 클라이언트 컴포넌트
+  - 마운트 시 `getClientId()` + `loadLatestInputs()` 복원 (`restored` 플래그로 초기 로딩 표시)
+  - `useTransition` 기반 저장, 결과는 inline 메시지
+  - 운전시간 `valid` false 시 저장 버튼 비활성
+  - footer에 client_id 디버그 표시
+- [src/app/page.tsx](src/app/page.tsx) 전면 교체 — Server Component, 라이브러리 로드 후 InputScreen 주입 (Next.js 시작 화면 제거)
+- **React 19 lint 회피**: `react-hooks/set-state-in-effect` 룰 대응 — useEffect 본문 내 직접 setState 금지. 모든 setState를 `Promise.then()` 콜백 내부로 이동
+- 자식 컴포넌트의 `useEffect` 무한 루프 방지를 위해 onChange 콜백을 `useCallback`으로 안정화
+
+### 12.5 수동 검증 (사용자 직접 확인)
+
+- 신규 사용자 시나리오: 입력 → 저장 → 새로고침 복원 라운드트립 OK
+- Supabase 대시보드에서 `fuel_cell_inputs`/`operation_inputs` row 생성 확인
+- 기능 이상 없음 확인 후 기본값(16h/8h) 추가 요청 → 반영 완료
+
+### 12.6 작업 2-10 컴포넌트 테스트 완료
+
+- [src/components/inputs/**tests**/FuelCellSetRow.test.tsx](src/components/inputs/__tests__/FuelCellSetRow.test.tsx) — 5 케이스 (캐스케이딩 리셋, 비활성, 필터링, 자동 채움, 삭제)
+- [src/components/inputs/**tests**/OperationProfileSelector.test.tsx](src/components/inputs/__tests__/OperationProfileSelector.test.tsx) — 5 케이스 (기본값 16/8, 운전유형 미선택 시 invalid, 선택 시 valid, 24h 초과 검증, 월별 read-only 표시)
+
+### 12.7 최종 검증
+
+| 명령                   | 결과                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `npm run lint`         | ✅                                                                                                                       |
+| `npm run test`         | ✅ **34/34** (sanity 1 + library 5 + clientId 2 + inputs 6 + actions 10 + FuelCellSetRow 5 + OperationProfileSelector 5) |
+| `npm run build`        | ✅                                                                                                                       |
+| 로컬 dev 라운드트립    | ✅ 사용자 확인                                                                                                           |
+| Vercel Production 배포 | ✅ 사용자 확인                                                                                                           |
+
+### 12.8 커밋 / 푸시
+
+- `f8479bc` — Phase 2: Input screen (작업 2-1 ~ 2-9)
+- `a86b39c` — Phase 2 finalize: default hours, component tests, handoff update
+- `git push origin main` 완료, Vercel 자동 배포 후 정상 동작 확인
+
+### 12.9 Phase 2 최종 상태
+
+**작업 2-1 ~ 2-10 전체 완료.** Phase 2 종료. 다음 세션은 §10 체크리스트 따라 **Phase 3 계산 로직** 수립부터 시작.
