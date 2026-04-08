@@ -21,6 +21,8 @@ export const fuelCellInputSetSchema = z.object({
   발전용량_kW: z.number().positive().nullable(),
   열생산용량_kW: z.number().nonnegative().nullable(),
   설치수량: z.number().int().positive().nullable(),
+  kW당설치단가_override: z.number().positive().nullable().optional(),
+  kW당연간유지비용_override: z.number().nonnegative().nullable().optional(),
 });
 
 export const fuelCellInputSchema = z.object({

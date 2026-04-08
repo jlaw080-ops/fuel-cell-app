@@ -11,8 +11,7 @@
  * 라이브러리는 Server Component(page.tsx)에서 props로 주입.
  */
 import { useCallback, useEffect, useState, useTransition } from 'react';
-import type { FuelCellLibrary } from '@/types/fuelCell';
-import type { OperationLibrary } from '@/types/operation';
+import type { AllLibraries } from '@/lib/data/loadLibraries';
 import { getClientId } from '@/lib/session/clientId';
 import { saveFuelCellInput, saveOperationInput, loadLatestInputs } from '@/lib/actions/inputs';
 import { FuelCellSetList } from '@/components/inputs/FuelCellSetList';
@@ -21,15 +20,16 @@ import {
   OperationProfileSelector,
   type OperationInputState,
 } from '@/components/inputs/OperationProfileSelector';
+import { ResultsSection } from '@/components/results/ResultsSection';
 
 interface Props {
-  fuelCellLibrary: FuelCellLibrary;
-  operationLibrary: OperationLibrary;
+  libraries: AllLibraries;
 }
 
 type Msg = { kind: 'ok' | 'err'; text: string } | null;
 
-export function InputScreen({ fuelCellLibrary, operationLibrary }: Props) {
+export function InputScreen({ libraries }: Props) {
+  const { fuelCell: fuelCellLibrary, operation: operationLibrary } = libraries;
   const [clientId, setClientId] = useState<string>('');
   const [initialFuelCell, setInitialFuelCell] = useState<FuelCellSetState[] | undefined>();
   const [initialOperation, setInitialOperation] = useState<
@@ -177,6 +177,17 @@ export function InputScreen({ fuelCellLibrary, operationLibrary }: Props) {
             {opMsg.text}
           </div>
         )}
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">결과</h2>
+        <ResultsSection
+          fuelCellSets={fuelCellSets}
+          fuelCellTotal={fuelCellTotal}
+          operation={operationState}
+          operationValid={operationValid}
+          libraries={libraries}
+        />
       </section>
 
       <footer className="text-xs text-zinc-400 border-t pt-4">

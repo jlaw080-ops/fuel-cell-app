@@ -103,8 +103,10 @@ export function calcCapex(fuelCell: FuelCellInput, library: FuelCellLibrary): nu
   for (const set of fuelCell.sets) {
     if (set.발전용량_kW == null || set.설치수량 == null) continue;
     const product = library.find((p) => p.모델명 === set.모델);
-    if (!product || product.kW당설치단가 == null) return null;
-    capex += set.발전용량_kW * set.설치수량 * product.kW당설치단가;
+    // 우선순위: 사용자 override > 라이브러리 값
+    const unit = set.kW당설치단가_override ?? product?.kW당설치단가 ?? null;
+    if (unit == null) return null;
+    capex += set.발전용량_kW * set.설치수량 * unit;
     any = true;
   }
   return any ? capex : null;
@@ -119,8 +121,9 @@ export function calcFixedMaintenance(
   for (const set of fuelCell.sets) {
     if (set.발전용량_kW == null || set.설치수량 == null) continue;
     const product = library.find((p) => p.모델명 === set.모델);
-    if (!product || product.kW당연간유지비용 == null) return null;
-    total += set.발전용량_kW * set.설치수량 * product.kW당연간유지비용;
+    const unit = set.kW당연간유지비용_override ?? product?.kW당연간유지비용 ?? null;
+    if (unit == null) return null;
+    total += set.발전용량_kW * set.설치수량 * unit;
     any = true;
   }
   return any ? total : null;

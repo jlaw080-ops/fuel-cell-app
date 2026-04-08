@@ -10,6 +10,10 @@ export interface FuelCellInputSet {
   발전용량_kW: number | null;
   열생산용량_kW: number | null;
   설치수량: number | null;
+  /** 라이브러리 kW당설치단가가 null인 모델에 대한 사용자 입력 fallback. */
+  kW당설치단가_override?: number | null;
+  /** 라이브러리 kW당연간유지비용이 null인 모델에 대한 사용자 입력 fallback. */
+  kW당연간유지비용_override?: number | null;
 }
 
 export interface FuelCellInput {

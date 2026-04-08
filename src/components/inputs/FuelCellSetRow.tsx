@@ -17,6 +17,8 @@ export interface FuelCellSetState {
   발전용량_kW: number | null;
   열생산용량_kW: number | null;
   설치수량: number | null;
+  kW당설치단가_override?: number | null;
+  kW당연간유지비용_override?: number | null;
 }
 
 interface Props {
@@ -70,6 +72,29 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
       모델: next,
       발전용량_kW: product?.정격발전용량_kW ?? null,
       열생산용량_kW: product?.열생산용량_kW ?? null,
+      // 모델 변경 시 override 초기화
+      kW당설치단가_override: null,
+      kW당연간유지비용_override: null,
+    });
+  }
+
+  // 라이브러리에서 현재 선택된 모델의 단가/유지비가 null인지 판정
+  const selectedProduct = models.find((p) => p.모델명 === value.모델);
+  const needsCapexOverride = !!selectedProduct && selectedProduct.kW당설치단가 == null;
+  const needsMaintOverride = !!selectedProduct && selectedProduct.kW당연간유지비용 == null;
+
+  function handleCapexOverride(raw: string) {
+    const n = raw === '' ? null : Number(raw);
+    onChange({
+      ...value,
+      kW당설치단가_override: Number.isFinite(n) ? n : null,
+    });
+  }
+  function handleMaintOverride(raw: string) {
+    const n = raw === '' ? null : Number(raw);
+    onChange({
+      ...value,
+      kW당연간유지비용_override: Number.isFinite(n) ? n : null,
     });
   }
 
@@ -145,6 +170,40 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
       >
         삭제
       </button>
+
+      {(needsCapexOverride || needsMaintOverride) && (
+        <div className="col-span-12 mt-2 grid grid-cols-12 gap-2 bg-amber-50 border border-amber-200 rounded p-2 text-xs">
+          <div className="col-span-12 text-amber-800">
+            이 모델은 라이브러리 단가가 없습니다. 직접 입력하세요.
+          </div>
+          {needsCapexOverride && (
+            <label className="col-span-6 flex items-center gap-2">
+              <span className="text-zinc-700">kW당 설치단가 (원)</span>
+              <input
+                type="number"
+                min={0}
+                value={value.kW당설치단가_override ?? ''}
+                onChange={(e) => handleCapexOverride(e.target.value)}
+                className="flex-1 border border-zinc-300 rounded px-2 py-1"
+                placeholder="예: 10000000"
+              />
+            </label>
+          )}
+          {needsMaintOverride && (
+            <label className="col-span-6 flex items-center gap-2">
+              <span className="text-zinc-700">kW당 연간유지비 (원)</span>
+              <input
+                type="number"
+                min={0}
+                value={value.kW당연간유지비용_override ?? ''}
+                onChange={(e) => handleMaintOverride(e.target.value)}
+                className="flex-1 border border-zinc-300 rounded px-2 py-1"
+                placeholder="예: 2200000"
+              />
+            </label>
+          )}
+        </div>
+      )}
     </div>
   );
 }
