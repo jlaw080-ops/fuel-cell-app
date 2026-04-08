@@ -39,6 +39,7 @@ interface Props {
     gas: GasTariffLibrary;
   };
   initialSettings?: EconomicsSettings;
+  initialTitle?: string | null;
 }
 
 export function ResultsSection({
@@ -48,11 +49,16 @@ export function ResultsSection({
   operationValid,
   libraries,
   initialSettings,
+  initialTitle,
 }: Props) {
   const [settings, setSettings] = useState<EconomicsSettings>(initialSettings ?? DEFAULT_SETTINGS);
+  const [title, setTitle] = useState(initialTitle ?? '');
   useEffect(() => {
     if (initialSettings) Promise.resolve().then(() => setSettings(initialSettings));
   }, [initialSettings]);
+  useEffect(() => {
+    if (initialTitle != null) Promise.resolve().then(() => setTitle(initialTitle));
+  }, [initialTitle]);
   const router = useRouter();
   const [saving, startSave] = useTransition();
   const [saveErr, setSaveErr] = useState<string | null>(null);
@@ -117,7 +123,9 @@ export function ResultsSection({
     }
     startSave(async () => {
       const clientId = getClientId() ?? '';
-      const res = await saveReport(clientId, snapshot);
+      const autoTitle =
+        title.trim() || `${fuelCellTotal}kW 연료전지 (${new Date().toLocaleString('ko-KR')})`;
+      const res = await saveReport(clientId, snapshot, autoTitle);
       if (res.ok) {
         router.push(`/report?id=${res.id}`);
       } else {
@@ -130,25 +138,41 @@ export function ResultsSection({
     <div className="space-y-8">
       <EconomicsSettingsPanel value={settings} onChange={setSettings} />
 
-      <div className="flex items-center gap-3 border border-zinc-200 rounded p-4 bg-zinc-50">
-        <span className="text-sm text-zinc-700 flex-1">
-          리포트를 A4 형식으로 보고 PDF로 저장할 수 있습니다.
-        </span>
-        <button
-          type="button"
-          onClick={() => openReport(false)}
-          className="px-3 py-2 border border-zinc-300 rounded text-sm bg-white hover:bg-zinc-50"
-        >
-          미리보기
-        </button>
-        <button
-          type="button"
-          onClick={() => openReport(true)}
-          disabled={saving}
-          className="px-3 py-2 bg-zinc-900 text-white rounded text-sm disabled:opacity-50"
-        >
-          {saving ? '저장 중...' : '저장 + 리포트 보기'}
-        </button>
+      <div className="border border-zinc-200 rounded p-4 bg-zinc-50 space-y-3">
+        <div className="flex items-center gap-3">
+          <label htmlFor="report-title" className="text-sm text-zinc-700 whitespace-nowrap">
+            리포트 제목
+          </label>
+          <input
+            id="report-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={80}
+            placeholder="비워두면 자동 생성됩니다 (예: 30kW 연료전지 (...))"
+            className="flex-1 px-3 py-2 border border-zinc-300 rounded text-sm bg-white"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-zinc-700 flex-1">
+            리포트를 A4 형식으로 보고 PDF로 저장할 수 있습니다.
+          </span>
+          <button
+            type="button"
+            onClick={() => openReport(false)}
+            className="px-3 py-2 border border-zinc-300 rounded text-sm bg-white hover:bg-zinc-50"
+          >
+            미리보기
+          </button>
+          <button
+            type="button"
+            onClick={() => openReport(true)}
+            disabled={saving}
+            className="px-3 py-2 bg-zinc-900 text-white rounded text-sm disabled:opacity-50"
+          >
+            {saving ? '저장 중...' : '저장 + 리포트 보기'}
+          </button>
+        </div>
       </div>
       {saveErr && <div className="text-sm text-red-600">{saveErr}</div>}
 

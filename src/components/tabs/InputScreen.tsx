@@ -40,6 +40,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
     Partial<OperationInputState> | undefined
   >();
   const [initialSettings, setInitialSettings] = useState<EconomicsSettings | undefined>();
+  const [initialTitle, setInitialTitle] = useState<string | null | undefined>();
   const [loadedFromReport, setLoadedFromReport] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
 
@@ -77,6 +78,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
           );
           setInitialOperation(snap.inputs.operation);
           setInitialSettings(snap.settings as EconomicsSettings);
+          setInitialTitle(res.data.title);
           setLoadedFromReport(reportId);
         }
         setRestored(true);
@@ -231,6 +233,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
           operationValid={operationValid}
           libraries={libraries}
           initialSettings={initialSettings}
+          initialTitle={initialTitle}
         />
       </section>
 

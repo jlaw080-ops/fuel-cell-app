@@ -10,7 +10,12 @@ import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getClientId } from '@/lib/session/clientId';
-import { listReports, deleteReport, type ReportListItem } from '@/lib/actions/reports';
+import {
+  listReports,
+  deleteReport,
+  renameReport,
+  type ReportListItem,
+} from '@/lib/actions/reports';
 import { fmtKW, fmtWon, fmtPct, fmtYears } from '@/lib/format';
 
 export function ReportsList() {
@@ -20,6 +25,8 @@ export function ReportsList() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
 
   useEffect(() => {
     const id = getClientId() ?? '';
@@ -53,6 +60,32 @@ export function ReportsList() {
     router.push(`/?reportId=${id}`);
   }
 
+  function startEdit(item: ReportListItem) {
+    setEditingId(item.id);
+    setEditingTitle(item.title ?? '');
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditingTitle('');
+  }
+
+  function commitEdit() {
+    if (!editingId || !clientId) return;
+    const targetId = editingId;
+    const newTitle = editingTitle;
+    startTransition(async () => {
+      const res = await renameReport(targetId, clientId, newTitle);
+      if (res.ok) {
+        setItems((prev) => prev.map((x) => (x.id === targetId ? { ...x, title: res.title } : x)));
+        setEditingId(null);
+        setEditingTitle('');
+      } else {
+        alert('이름 변경 실패: ' + res.error);
+      }
+    });
+  }
+
   if (loading) return <div className="text-zinc-500">불러오는 중...</div>;
   if (err) return <div className="text-red-600">오류: {err}</div>;
 
@@ -74,6 +107,7 @@ export function ReportsList() {
         <table className="w-full text-sm border border-zinc-200">
           <thead className="bg-zinc-50">
             <tr>
+              <th className="px-3 py-2 text-left">제목</th>
               <th className="px-3 py-2 text-left">저장일시</th>
               <th className="px-3 py-2 text-right">총 용량</th>
               <th className="px-3 py-2 text-right">회수기간</th>
@@ -85,7 +119,51 @@ export function ReportsList() {
           <tbody>
             {items.map((r) => (
               <tr key={r.id} className="border-t border-zinc-200">
-                <td className="px-3 py-2">{new Date(r.createdAt).toLocaleString('ko-KR')}</td>
+                <td className="px-3 py-2">
+                  {editingId === r.id ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        maxLength={80}
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') commitEdit();
+                          else if (e.key === 'Escape') cancelEdit();
+                        }}
+                        className="flex-1 px-2 py-1 border border-zinc-300 rounded text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={commitEdit}
+                        disabled={pending}
+                        className="px-2 py-1 bg-zinc-900 text-white rounded text-xs disabled:opacity-50"
+                      >
+                        저장
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="px-2 py-1 border border-zinc-300 rounded text-xs"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(r)}
+                      className="text-left hover:bg-zinc-50 px-1 py-0.5 rounded w-full"
+                      title="클릭하여 이름 변경"
+                    >
+                      {r.title ?? <span className="text-zinc-400">(제목 없음)</span>}
+                    </button>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-xs text-zinc-600">
+                  {new Date(r.createdAt).toLocaleString('ko-KR')}
+                </td>
                 <td className="px-3 py-2 text-right">{fmtKW(r.totalCapacity_kW)}</td>
                 <td className="px-3 py-2 text-right">
                   {r.paybackYears == null ? '회수 불가' : fmtYears(r.paybackYears)}
