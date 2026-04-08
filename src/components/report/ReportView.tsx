@@ -91,6 +91,14 @@ export function ReportView({ reportId }: Props) {
         <Link href="/" className="text-sm text-blue-600 underline">
           ← 입력으로 돌아가기
         </Link>
+        <Link href="/reports" className="text-sm text-blue-600 underline">
+          내 리포트 목록
+        </Link>
+        {reportId && (
+          <Link href={`/?reportId=${reportId}`} className="text-sm text-blue-600 underline">
+            앱으로 불러오기
+          </Link>
+        )}
         <span className="flex-1" />
         <button
           type="button"

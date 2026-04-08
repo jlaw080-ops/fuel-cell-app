@@ -15,6 +15,15 @@ type LoadOk = {
   ok: true;
   data: { snapshot: ReportSnapshot; aiReview: string | null; createdAt: string };
 };
+export type ReportListItem = {
+  id: string;
+  createdAt: string;
+  totalCapacity_kW: number;
+  paybackYears: number | null;
+  npv20_원: number | null;
+  irr20: number | null;
+};
+type ListOk = { ok: true; data: ReportListItem[] };
 type Err = { ok: false; error: string };
 
 export async function saveReport(clientId: string, raw: unknown): Promise<SaveOk | Err> {
@@ -59,6 +68,43 @@ export async function loadReport(id: string): Promise<LoadOk | Err> {
       createdAt: data.created_at,
     },
   };
+}
+
+export async function listReports(clientId: string): Promise<ListOk | Err> {
+  if (!clientId) return { ok: false, error: 'clientId가 필요합니다.' };
+  const supabase = supabaseServer;
+  const { data, error } = await supabase
+    .from('reports')
+    .select('id, payload, created_at')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) return { ok: false, error: error.message };
+
+  const items: ReportListItem[] = (data ?? []).map((row) => {
+    const p = row.payload as ReportSnapshot;
+    const s20 = p.results.economics.summary.데이터.find((r) => r.기간_년 === 20);
+    return {
+      id: row.id,
+      createdAt: row.created_at,
+      totalCapacity_kW: p.inputs.fuelCell.총설치용량_kW ?? 0,
+      paybackYears: p.results.paybackYears,
+      npv20_원: s20?.NPV_원 ?? null,
+      irr20: s20?.IRR ?? null,
+    };
+  });
+  return { ok: true, data: items };
+}
+
+export async function deleteReport(id: string, clientId: string): Promise<{ ok: true } | Err> {
+  if (!id || !clientId) return { ok: false, error: 'id/clientId가 필요합니다.' };
+  const { error } = await supabaseServer
+    .from('reports')
+    .delete()
+    .eq('id', id)
+    .eq('client_id', clientId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 export async function saveAiReview(id: string, review: string): Promise<{ ok: true } | Err> {

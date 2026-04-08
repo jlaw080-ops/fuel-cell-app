@@ -6,7 +6,7 @@
  * 입력값 + 4종 라이브러리를 받아 클라이언트 측 useMemo로 계산,
  * 유효한 경우에만 결과 표/카드를 렌더링.
  */
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { FuelCellLibrary } from '@/types/fuelCell';
 import type { OperationLibrary } from '@/types/operation';
@@ -38,6 +38,7 @@ interface Props {
     electricity: ElectricityTariffLibrary;
     gas: GasTariffLibrary;
   };
+  initialSettings?: EconomicsSettings;
 }
 
 export function ResultsSection({
@@ -46,8 +47,12 @@ export function ResultsSection({
   operation,
   operationValid,
   libraries,
+  initialSettings,
 }: Props) {
-  const [settings, setSettings] = useState<EconomicsSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<EconomicsSettings>(initialSettings ?? DEFAULT_SETTINGS);
+  useEffect(() => {
+    if (initialSettings) Promise.resolve().then(() => setSettings(initialSettings));
+  }, [initialSettings]);
   const router = useRouter();
   const [saving, startSave] = useTransition();
   const [saveErr, setSaveErr] = useState<string | null>(null);

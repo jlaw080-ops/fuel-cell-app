@@ -11,9 +11,12 @@
  * 라이브러리는 Server Component(page.tsx)에서 props로 주입.
  */
 import { useCallback, useEffect, useState, useTransition } from 'react';
+import Link from 'next/link';
 import type { AllLibraries } from '@/lib/data/loadLibraries';
 import { getClientId } from '@/lib/session/clientId';
 import { saveFuelCellInput, saveOperationInput, loadLatestInputs } from '@/lib/actions/inputs';
+import { loadReport } from '@/lib/actions/reports';
+import type { EconomicsSettings } from '@/components/results/EconomicsSettingsPanel';
 import { FuelCellSetList } from '@/components/inputs/FuelCellSetList';
 import type { FuelCellSetState } from '@/components/inputs/FuelCellSetRow';
 import {
@@ -24,17 +27,20 @@ import { ResultsSection } from '@/components/results/ResultsSection';
 
 interface Props {
   libraries: AllLibraries;
+  reportId?: string | null;
 }
 
 type Msg = { kind: 'ok' | 'err'; text: string } | null;
 
-export function InputScreen({ libraries }: Props) {
+export function InputScreen({ libraries, reportId = null }: Props) {
   const { fuelCell: fuelCellLibrary, operation: operationLibrary } = libraries;
   const [clientId, setClientId] = useState<string>('');
   const [initialFuelCell, setInitialFuelCell] = useState<FuelCellSetState[] | undefined>();
   const [initialOperation, setInitialOperation] = useState<
     Partial<OperationInputState> | undefined
   >();
+  const [initialSettings, setInitialSettings] = useState<EconomicsSettings | undefined>();
+  const [loadedFromReport, setLoadedFromReport] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
 
   const [fuelCellSets, setFuelCellSets] = useState<FuelCellSetState[]>([]);
@@ -46,10 +52,38 @@ export function InputScreen({ libraries }: Props) {
   const [fcMsg, setFcMsg] = useState<Msg>(null);
   const [opMsg, setOpMsg] = useState<Msg>(null);
 
-  // 1) clientId 확보 + 최신 데이터 복원
-  // setState는 모두 비동기 콜백 내부에서 호출 (react-hooks/set-state-in-effect 회피)
+  // 1) clientId 확보 + 데이터 복원
+  // reportId가 있으면 리포트 스냅샷에서 복원, 없으면 최신 입력에서 복원
   useEffect(() => {
     const id = getClientId();
+
+    if (reportId) {
+      Promise.resolve().then(() => setClientId(id ?? ''));
+      loadReport(reportId).then((res) => {
+        if (res.ok) {
+          const snap = res.data.snapshot;
+          setInitialFuelCell(
+            snap.inputs.fuelCell.sets.map((s) => ({
+              set_id: s.set_id,
+              형식: s.형식,
+              제조사: s.제조사,
+              모델: s.모델,
+              발전용량_kW: s.발전용량_kW,
+              열생산용량_kW: s.열생산용량_kW,
+              설치수량: s.설치수량,
+              kW당설치단가_override: s.kW당설치단가_override ?? null,
+              kW당연간유지비용_override: s.kW당연간유지비용_override ?? null,
+            })),
+          );
+          setInitialOperation(snap.inputs.operation);
+          setInitialSettings(snap.settings as EconomicsSettings);
+          setLoadedFromReport(reportId);
+        }
+        setRestored(true);
+      });
+      return;
+    }
+
     if (!id) {
       Promise.resolve().then(() => {
         setClientId('');
@@ -61,7 +95,6 @@ export function InputScreen({ libraries }: Props) {
       setClientId(id);
       if (res.ok) {
         if (res.data.fuelCell) {
-          // payload의 sets를 컴포넌트 상태로 변환 (set_id 보존)
           setInitialFuelCell(
             res.data.fuelCell.sets.map((s) => ({
               set_id: s.set_id,
@@ -80,7 +113,7 @@ export function InputScreen({ libraries }: Props) {
       }
       setRestored(true);
     });
-  }, []);
+  }, [reportId]);
 
   // 콜백을 안정화 — 자식의 useEffect 무한 루프 방지
   const handleFuelCellChange = useCallback((sets: FuelCellSetState[], total: number) => {
@@ -121,6 +154,16 @@ export function InputScreen({ libraries }: Props) {
 
   return (
     <div className="space-y-10">
+      {loadedFromReport && (
+        <div className="border border-blue-300 bg-blue-50 rounded p-3 text-sm text-blue-900 flex items-center gap-3">
+          <span className="flex-1">
+            저장된 리포트에서 입력값과 설정을 불러왔습니다. 수정 후 다시 저장할 수 있습니다.
+          </span>
+          <Link href="/" className="text-xs text-blue-700 underline">
+            새로 시작
+          </Link>
+        </div>
+      )}
       <section className="space-y-4">
         <header className="flex items-baseline justify-between">
           <div>
@@ -187,6 +230,7 @@ export function InputScreen({ libraries }: Props) {
           operation={operationState}
           operationValid={operationValid}
           libraries={libraries}
+          initialSettings={initialSettings}
         />
       </section>
 
