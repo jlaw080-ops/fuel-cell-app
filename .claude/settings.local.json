@@ -17,7 +17,8 @@
       "Bash(SUPABASE_DB_PASSWORD='Jh!0082501Boa' npx supabase link --project-ref gdiwewatuwzfopzpdnfj)",
       "Bash(SUPABASE_ACCESS_TOKEN='sbp_e6f7aab1ab50708728babc8c242a3a57b1c756a1' SUPABASE_DB_PASSWORD='Jh!0082501Boa' npx supabase link --project-ref gdiwewatuwzfopzpdnfj)",
       "Bash(SUPABASE_ACCESS_TOKEN='sbp_e6f7aab1ab50708728babc8c242a3a57b1c756a1' SUPABASE_DB_PASSWORD='Jh!0082501Boa' npx supabase db push)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(git commit -m 'fix\\(gemini\\): disable thinking and raise output tokens to prevent truncation:*)"
     ]
   }
 }

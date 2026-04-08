@@ -29,7 +29,8 @@ export async function generateAiReview(snapshot: ReportSnapshot): Promise<AiRevi
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 800,
+            maxOutputTokens: 2048,
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
       },
