@@ -12,7 +12,7 @@ export type AiReviewResult =
   | { ok: true; review: string }
   | { ok: false; reason: 'no_key' | 'api_error'; error?: string };
 
-const MODEL = 'gemini-2.0-flash';
+const MODEL = 'gemini-2.5-flash';
 
 export async function generateAiReview(snapshot: ReportSnapshot): Promise<AiReviewResult> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -35,7 +35,9 @@ export async function generateAiReview(snapshot: ReportSnapshot): Promise<AiRevi
       },
     );
     if (!res.ok) {
-      return { ok: false, reason: 'api_error', error: `HTTP ${res.status}` };
+      const body = await res.text().catch(() => '');
+      console.error('[gemini] API error', res.status, body);
+      return { ok: false, reason: 'api_error', error: `HTTP ${res.status}: ${body.slice(0, 200)}` };
     }
     const json = (await res.json()) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
