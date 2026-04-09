@@ -169,14 +169,13 @@ export async function deleteReport(id: string, clientId: string): Promise<{ ok: 
 }
 
 /**
- * Phase 6e-2 — 첫 로그인 직후 호출. 이 브라우저(clientId)가 anon 상태에서
- * 저장했던 리포트를 현재 로그인 사용자 계정으로 이전한다.
+ * Phase 6e-2 / Phase 7 — 첫 로그인 직후 호출. 이 브라우저(clientId)가 anon
+ * 상태에서 저장했던 리포트를 현재 로그인 사용자 계정으로 이전한다.
  *
- * 사용 정책: `auth_claim_anon` (마이그레이션 20260409000001) —
- *   USING (user_id is null) WITH CHECK (user_id = auth.uid())
- *
- * 필터: client_id 는 브라우저 localStorage 에 있는 UUID 라 타 사용자가
- * 추측하기 어렵지만, 서버에서도 명시적으로 제한한다.
+ * 구현: SECURITY DEFINER 함수 `claim_anon_reports` 호출 (마이그레이션
+ * 20260409000002). RLS 의 SELECT 제약(authenticated 는 user_id=auth.uid()
+ * 인 row 만 볼 수 있음) 을 우회하면서도, 함수 내부에서 auth.uid() 와
+ * client_id 로 범위를 제한한다.
  */
 export async function claimAnonReports(
   clientId: string,
@@ -188,14 +187,11 @@ export async function claimAnonReports(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: '로그인이 필요합니다.' };
 
-  const { data, error } = await supabase
-    .from('reports')
-    .update({ user_id: user.id })
-    .is('user_id', null)
-    .eq('client_id', clientId)
-    .select('id');
+  const { data, error } = await supabase.rpc('claim_anon_reports', {
+    p_client_id: clientId,
+  });
   if (error) return { ok: false, error: error.message };
-  return { ok: true, claimed: (data ?? []).length };
+  return { ok: true, claimed: (data as number | null) ?? 0 };
 }
 
 export async function saveAiReview(id: string, review: string): Promise<{ ok: true } | Err> {
