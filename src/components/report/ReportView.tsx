@@ -14,7 +14,7 @@ import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import type { ReportSnapshot } from '@/lib/schemas/report';
 import { loadReportDraftLocal } from '@/lib/report/buildSnapshot';
-import { loadReport, saveAiReview } from '@/lib/actions/reports';
+import { loadReport, saveAiReview, setReportPublic } from '@/lib/actions/reports';
 import { generateAiReview } from '@/lib/gemini/review';
 import { ReportDocument } from './ReportDocument';
 import '@/app/report/report.css';
@@ -30,6 +30,10 @@ export function ReportView({ reportId }: Props) {
   const [aiLoading, startAi] = useTransition();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [sharePending, startShare] = useTransition();
+  const [copied, setCopied] = useState(false);
 
   // 1) 데이터 로드
   useEffect(() => {
@@ -45,6 +49,8 @@ export function ReportView({ reportId }: Props) {
         }
         setSnapshot(res.data.snapshot);
         setAiReview(res.data.aiReview);
+        setIsPublic(res.data.isPublic);
+        setIsOwner(res.data.isOwner);
       } else {
         const draft = loadReportDraftLocal();
         if (cancelled) return;
@@ -100,6 +106,48 @@ export function ReportView({ reportId }: Props) {
           </Link>
         )}
         <span className="flex-1" />
+        {reportId && isOwner && (
+          <>
+            <button
+              type="button"
+              disabled={sharePending}
+              onClick={() =>
+                startShare(async () => {
+                  const next = !isPublic;
+                  const res = await setReportPublic(reportId, next);
+                  if (res.ok) setIsPublic(res.isPublic);
+                  else alert('공유 설정 실패: ' + res.error);
+                })
+              }
+              className={
+                'px-3 py-2 rounded text-sm border ' +
+                (isPublic
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : 'bg-white border-zinc-300 text-zinc-700')
+              }
+            >
+              {isPublic ? '공유 ON' : '공유 OFF'}
+            </button>
+            {isPublic && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const url = `${window.location.origin}/report?id=${reportId}`;
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  } catch {
+                    window.prompt('링크를 복사하세요:', url);
+                  }
+                }}
+                className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white text-zinc-700"
+              >
+                {copied ? '복사됨 ✓' : '링크 복사'}
+              </button>
+            )}
+          </>
+        )}
         <button
           type="button"
           onClick={() => window.print()}

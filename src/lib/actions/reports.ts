@@ -32,6 +32,8 @@ type LoadOk = {
     aiReview: string | null;
     createdAt: string;
     title: string | null;
+    isPublic: boolean;
+    isOwner: boolean;
   };
 };
 export type ReportListItem = {
@@ -98,10 +100,10 @@ export async function renameReport(
 
 export async function loadReport(id: string): Promise<LoadOk | Err> {
   if (!id) return { ok: false, error: 'id가 필요합니다.' };
-  const { supabase } = await getAuthedClient();
+  const { supabase, userId } = await getAuthedClient();
   const { data, error } = await supabase
     .from('reports')
-    .select('payload, ai_review, created_at, title')
+    .select('payload, ai_review, created_at, title, is_public, user_id')
     .eq('id', id)
     .maybeSingle();
 
@@ -119,8 +121,22 @@ export async function loadReport(id: string): Promise<LoadOk | Err> {
       aiReview: data.ai_review,
       createdAt: data.created_at,
       title: data.title ?? null,
+      isPublic: !!data.is_public,
+      isOwner: !!(userId && data.user_id === userId),
     },
   };
+}
+
+export async function setReportPublic(
+  id: string,
+  isPublic: boolean,
+): Promise<{ ok: true; isPublic: boolean } | Err> {
+  if (!id) return { ok: false, error: 'id가 필요합니다.' };
+  const { supabase, userId } = await getAuthedClient();
+  if (!userId) return { ok: false, error: '로그인이 필요합니다.' };
+  const { error } = await supabase.from('reports').update({ is_public: isPublic }).eq('id', id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, isPublic };
 }
 
 export async function listReports(clientId: string): Promise<ListOk | Err> {
