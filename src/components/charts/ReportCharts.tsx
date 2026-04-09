@@ -15,7 +15,6 @@ import {
   Legend,
   Line,
   LineChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -26,8 +25,16 @@ const numFmt = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 });
 const fmt = (v: number | string) => (typeof v === 'number' ? numFmt.format(v) : v);
 const r0 = (n: number | null | undefined): number => Math.round(n ?? 0);
 
+// 고정 px — 화면/인쇄 동일 렌더(ResponsiveContainer 미사용).
+// isAnimationActive={false} 필수: 인쇄 시 애니메이션 시작 프레임(0%)에서 캡처되어
+// SVG 막대/라인이 보이지 않는 버그 방지.
+const CHART_WIDTH = 640;
+const CHART_HEIGHT = 260;
+
 interface Props {
   snapshot: Pick<ReportSnapshot, 'results'>;
+  /** @deprecated 미사용. */
+  forPrint?: boolean;
 }
 
 export function ReportCharts({ snapshot }: Props) {
@@ -57,54 +64,56 @@ export function ReportCharts({ snapshot }: Props) {
   return (
     <div className="space-y-6">
       <ChartCard title="월별 에너지 생산량 (kWh)">
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={monthlyEnergy}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="월" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={fmt} />
-            <Tooltip formatter={(v) => fmt(v as number)} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="중간부하" stackId="elec" fill="#60a5fa" />
-            <Bar dataKey="최대부하" stackId="elec" fill="#2563eb" />
-            <Bar dataKey="열생산" fill="#f59e0b" />
-          </BarChart>
-        </ResponsiveContainer>
+        <BarChart data={monthlyEnergy} width={CHART_WIDTH} height={CHART_HEIGHT}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="월" tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} tickFormatter={fmt} />
+          <Tooltip formatter={(v) => fmt(v as number)} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Bar dataKey="중간부하" stackId="elec" fill="#60a5fa" isAnimationActive={false} />
+          <Bar dataKey="최대부하" stackId="elec" fill="#2563eb" isAnimationActive={false} />
+          <Bar dataKey="열생산" fill="#f59e0b" isAnimationActive={false} />
+        </BarChart>
       </ChartCard>
 
       <ChartCard title="월별 에너지 수익 (원)">
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={monthlyRevenue}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="월" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={fmt} />
-            <Tooltip formatter={(v) => fmt(v as number)} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="발전수익" fill="#2563eb" />
-            <Bar dataKey="열수익" fill="#f59e0b" />
-            <Bar dataKey="가스요금" fill="#dc2626" />
-            <Bar dataKey="최종수익" fill="#16a34a" />
-          </BarChart>
-        </ResponsiveContainer>
+        <BarChart data={monthlyRevenue} width={CHART_WIDTH} height={CHART_HEIGHT}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="월" tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} tickFormatter={fmt} />
+          <Tooltip formatter={(v) => fmt(v as number)} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Bar dataKey="발전수익" fill="#2563eb" isAnimationActive={false} />
+          <Bar dataKey="열수익" fill="#f59e0b" isAnimationActive={false} />
+          <Bar dataKey="가스요금" fill="#dc2626" isAnimationActive={false} />
+          <Bar dataKey="최종수익" fill="#16a34a" isAnimationActive={false} />
+        </BarChart>
       </ChartCard>
 
       <ChartCard title="연도별 누적 현금흐름 (원)">
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={yearlyCum}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="연도" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={fmt} />
-            <Tooltip formatter={(v) => fmt(v as number)} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line
-              type="monotone"
-              dataKey="누적순현금흐름"
-              stroke="#2563eb"
-              strokeWidth={2}
-              dot={false}
-            />
-            <Line type="monotone" dataKey="할인누적" stroke="#94a3b8" strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        <LineChart data={yearlyCum} width={CHART_WIDTH} height={CHART_HEIGHT}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="연도" tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} tickFormatter={fmt} />
+          <Tooltip formatter={(v) => fmt(v as number)} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Line
+            type="monotone"
+            dataKey="누적순현금흐름"
+            stroke="#2563eb"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="할인누적"
+            stroke="#94a3b8"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
+        </LineChart>
       </ChartCard>
     </div>
   );
@@ -114,7 +123,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   return (
     <div className="border border-zinc-200 rounded p-4 bg-white">
       <h4 className="text-sm font-semibold mb-2 text-zinc-700">{title}</h4>
-      {children}
+      <div style={{ overflowX: 'auto' }}>{children}</div>
     </div>
   );
 }
