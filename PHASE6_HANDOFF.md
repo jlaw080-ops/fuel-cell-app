@@ -180,7 +180,8 @@ Authentication → Providers → Email:
 
 ## 6. 기술 부채 / 후속 과제
 
-- [ ] (Phase 6e-2) Auth 적용 + anon 흡수
+- [x] (Phase 6e-2) Auth 적용 + anon 흡수 — 완료. 단, ClaimBanner 자동 claim 이 production 에서 0건 반환되는 이슈 있음 (아래 별도 항목)
+- [ ] **(Phase 6e-2 잔여)** ClaimBanner 자동 claim production 에서 0건 반환. 정책(`auth_claim_anon`)은 정상, 서비스 역할 수동 UPDATE 는 성공. 동일 helper 를 쓰는 saveReport 는 authenticated 로 잘 동작. 원인 불명 — 재현 조건 추가 관찰 필요. 현재 회피: 최초 로그인 시 수동 SQL UPDATE 로 복구
 - [ ] (Phase 7) shadcn 본격 적용 (전면 리팩토링은 디자인 토큰 결정 후)
 - [ ] (Phase 7) 차트 인쇄 시 SVG 크기 최적화 (현재 ResponsiveContainer가 인쇄 폭 자동 산정 OK)
 - [ ] (Phase 7) 리포트 영구 공유 URL (`is_public`)
@@ -207,4 +208,6 @@ Authentication → Providers → Email:
 - `4470f68` feat(reports): title field with inline rename
 - `d29adb0` Phase 6b/c: Charts (recharts) + scenario comparison
 - `4fc0ad7` chore: install shadcn/ui (radix base) + core primitives
+- `fb84fa0` Phase 6e-1: Supabase Auth (Magic Link) infrastructure
+- `2b0b86a` Phase 6e-2: wire reports actions to authenticated user
 - `fb84fa0` Phase 6e-1: Supabase Auth (Magic Link) infrastructure
