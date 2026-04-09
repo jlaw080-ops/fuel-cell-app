@@ -44,6 +44,7 @@ export type ReportListItem = {
   paybackYears: number | null;
   npv20_원: number | null;
   irr20: number | null;
+  isPublic: boolean;
 };
 
 const TITLE_MAX = 80;
@@ -145,7 +146,7 @@ export async function listReports(clientId: string): Promise<ListOk | Err> {
   // 비로그인 시: 기존 client_id 기반 필터
   let query = supabase
     .from('reports')
-    .select('id, payload, created_at, title')
+    .select('id, payload, created_at, title, is_public')
     .order('created_at', { ascending: false })
     .limit(100);
   if (!userId) {
@@ -166,6 +167,7 @@ export async function listReports(clientId: string): Promise<ListOk | Err> {
       paybackYears: p.results.paybackYears,
       npv20_원: s20?.NPV_원 ?? null,
       irr20: s20?.IRR ?? null,
+      isPublic: !!row.is_public,
     };
   });
   return { ok: true, data: items };

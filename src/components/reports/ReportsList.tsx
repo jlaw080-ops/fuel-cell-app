@@ -14,6 +14,7 @@ import {
   listReports,
   deleteReport,
   renameReport,
+  setReportPublic,
   type ReportListItem,
 } from '@/lib/actions/reports';
 import { fmtKW, fmtWon, fmtPct, fmtYears } from '@/lib/format';
@@ -28,6 +29,7 @@ export function ReportsList() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     const id = getClientId() ?? '';
@@ -59,6 +61,28 @@ export function ReportsList() {
 
   function onLoadIntoApp(id: string) {
     router.push(`/?reportId=${id}`);
+  }
+
+  function onTogglePublic(id: string, current: boolean) {
+    startTransition(async () => {
+      const res = await setReportPublic(id, !current);
+      if (res.ok) {
+        setItems((prev) => prev.map((x) => (x.id === id ? { ...x, isPublic: res.isPublic } : x)));
+      } else {
+        alert('공유 설정 실패: ' + res.error);
+      }
+    });
+  }
+
+  async function onCopyLink(id: string) {
+    const url = `${window.location.origin}/report?id=${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 2000);
+    } catch {
+      window.prompt('링크를 복사하세요:', url);
+    }
   }
 
   function startEdit(item: ReportListItem) {
@@ -175,14 +199,21 @@ export function ReportsList() {
                       </button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => startEdit(r)}
-                      className="text-left hover:bg-zinc-50 px-1 py-0.5 rounded w-full"
-                      title="클릭하여 이름 변경"
-                    >
-                      {r.title ?? <span className="text-zinc-400">(제목 없음)</span>}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(r)}
+                        className="text-left hover:bg-zinc-50 px-1 py-0.5 rounded flex-1"
+                        title="클릭하여 이름 변경"
+                      >
+                        {r.title ?? <span className="text-zinc-400">(제목 없음)</span>}
+                      </button>
+                      {r.isPublic && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-200">
+                          공유 중
+                        </span>
+                      )}
+                    </div>
                   )}
                 </td>
                 <td className="px-3 py-2 text-xs text-zinc-600">
@@ -208,6 +239,28 @@ export function ReportsList() {
                   >
                     앱으로 불러오기
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => onTogglePublic(r.id, r.isPublic)}
+                    disabled={pending}
+                    className={
+                      'px-2 py-1 rounded text-xs border disabled:opacity-50 ' +
+                      (r.isPublic
+                        ? 'bg-blue-50 border-blue-300 text-blue-700'
+                        : 'bg-white border-zinc-300 text-zinc-700')
+                    }
+                  >
+                    {r.isPublic ? '공유 OFF' : '공유 ON'}
+                  </button>
+                  {r.isPublic && (
+                    <button
+                      type="button"
+                      onClick={() => onCopyLink(r.id)}
+                      className="px-2 py-1 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
+                    >
+                      {copiedId === r.id ? '복사됨 ✓' : '링크 복사'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => onDelete(r.id)}
