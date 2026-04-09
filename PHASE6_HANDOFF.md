@@ -181,7 +181,7 @@ Authentication → Providers → Email:
 ## 6. 기술 부채 / 후속 과제
 
 - [x] (Phase 6e-2) Auth 적용 + anon 흡수 — 완료. 단, ClaimBanner 자동 claim 이 production 에서 0건 반환되는 이슈 있음 (아래 별도 항목)
-- [ ] **(Phase 6e-2 잔여)** ClaimBanner 자동 claim production 에서 0건 반환. 정책(`auth_claim_anon`)은 정상, 서비스 역할 수동 UPDATE 는 성공. 동일 helper 를 쓰는 saveReport 는 authenticated 로 잘 동작. 원인 불명 — 재현 조건 추가 관찰 필요. 현재 회피: 최초 로그인 시 수동 SQL UPDATE 로 복구
+- [x] **(Phase 6e-2 잔여)** ClaimBanner 자동 claim 이슈 해결 (`e59ca6d`). 원인: Postgres RLS 에서 UPDATE 대상 row 가 SELECT 정책에도 매치되어야 함 → authenticated 의 auth_select_own 이 user_id=auth.uid() 라 null row 가 보이지 않아 UPDATE 가 0건 반환. 해결: `claim_anon_reports` SECURITY DEFINER RPC 함수로 RLS 우회 + 함수 내부에서 auth.uid()/client_id 로 범위 제한 (마이그레이션 `20260409000002`)
 - [ ] (Phase 7) shadcn 본격 적용 (전면 리팩토링은 디자인 토큰 결정 후)
 - [ ] (Phase 7) 차트 인쇄 시 SVG 크기 최적화 (현재 ResponsiveContainer가 인쇄 폭 자동 산정 OK)
 - [ ] (Phase 7) 리포트 영구 공유 URL (`is_public`)
