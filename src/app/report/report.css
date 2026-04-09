@@ -114,4 +114,29 @@
   body {
     background: white !important;
   }
+
+  /* 차트 — recharts SVG 가 화면 폭 기준으로 고정되어 있어도
+     인쇄 시 페이지 폭에 맞춰 스케일되도록 강제. */
+  .recharts-responsive-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 6;
+    page-break-inside: avoid;
+  }
+  .recharts-wrapper,
+  .recharts-wrapper svg {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  /* 차트 색상 — 기본적으로 인쇄 시 배경/채움 제거되는 브라우저 방지 */
+  .recharts-wrapper,
+  .recharts-wrapper * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* 차트 카드 — 페이지 중간에서 잘리지 않도록 */
+  .report-root .border {
+    page-break-inside: avoid;
+  }
 }

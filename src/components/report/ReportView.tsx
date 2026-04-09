@@ -63,6 +63,18 @@ export function ReportView({ reportId }: Props) {
     };
   }, [reportId]);
 
+  // 1-b) 인쇄 시 recharts 재측정 — 화면 폭 기준으로 고정된 SVG 를
+  // 인쇄 페이지 폭에 맞추기 위해 beforeprint 에서 resize 이벤트 dispatch.
+  useEffect(() => {
+    const handler = () => window.dispatchEvent(new Event('resize'));
+    window.addEventListener('beforeprint', handler);
+    window.addEventListener('afterprint', handler);
+    return () => {
+      window.removeEventListener('beforeprint', handler);
+      window.removeEventListener('afterprint', handler);
+    };
+  }, []);
+
   // 2) AI 검토 자동 생성 (id 있고, 검토 없을 때만)
   useEffect(() => {
     if (!snapshot || aiReview || aiSkipped) return;
