@@ -11,7 +11,7 @@
  * 라이브러리는 Server Component(page.tsx)에서 props로 주입.
  */
 import { useCallback, useEffect, useState, useTransition } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { AllLibraries } from '@/lib/data/loadLibraries';
 import { getClientId } from '@/lib/session/clientId';
 import { saveFuelCellInput, saveOperationInput, loadLatestInputs } from '@/lib/actions/inputs';
@@ -34,7 +34,10 @@ type Msg = { kind: 'ok' | 'err'; text: string } | null;
 
 export function InputScreen({ libraries, reportId = null }: Props) {
   const { fuelCell: fuelCellLibrary, operation: operationLibrary } = libraries;
+  const router = useRouter();
   const [clientId, setClientId] = useState<string>('');
+  const [resetKey, setResetKey] = useState(0);
+  const [skipRestore, setSkipRestore] = useState(false);
   const [initialFuelCell, setInitialFuelCell] = useState<FuelCellSetState[] | undefined>();
   const [initialOperation, setInitialOperation] = useState<
     Partial<OperationInputState> | undefined
@@ -57,6 +60,15 @@ export function InputScreen({ libraries, reportId = null }: Props) {
   // reportId가 있으면 리포트 스냅샷에서 복원, 없으면 최신 입력에서 복원
   useEffect(() => {
     const id = getClientId();
+
+    if (skipRestore) {
+      // 초기화 직후 — 서버 복원 없이 즉시 빈 상태로
+      Promise.resolve().then(() => {
+        setClientId(id ?? '');
+        setRestored(true);
+      });
+      return;
+    }
 
     if (reportId) {
       Promise.resolve().then(() => setClientId(id ?? ''));
@@ -115,7 +127,25 @@ export function InputScreen({ libraries, reportId = null }: Props) {
       }
       setRestored(true);
     });
-  }, [reportId]);
+  }, [reportId, skipRestore, resetKey]);
+
+  function onReset() {
+    if (!confirm('입력값과 결과를 모두 초기화하시겠습니까?')) return;
+    setInitialFuelCell(undefined);
+    setInitialOperation(undefined);
+    setInitialSettings(undefined);
+    setInitialTitle(undefined);
+    setLoadedFromReport(null);
+    setFuelCellSets([]);
+    setFuelCellTotal(0);
+    setOperationState(null);
+    setOperationValid(false);
+    setFcMsg(null);
+    setOpMsg(null);
+    setSkipRestore(true);
+    setResetKey((k) => k + 1);
+    if (reportId) router.replace('/');
+  }
 
   // 콜백을 안정화 — 자식의 useEffect 무한 루프 방지
   const handleFuelCellChange = useCallback((sets: FuelCellSetState[], total: number) => {
@@ -161,11 +191,17 @@ export function InputScreen({ libraries, reportId = null }: Props) {
           <span className="flex-1">
             저장된 리포트에서 입력값과 설정을 불러왔습니다. 수정 후 다시 저장할 수 있습니다.
           </span>
-          <Link href="/" className="text-xs text-blue-700 underline">
-            새로 시작
-          </Link>
         </div>
       )}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onReset}
+          className="px-3 py-1.5 rounded border border-zinc-300 bg-white text-sm text-zinc-700 hover:bg-zinc-50"
+        >
+          입력 초기화
+        </button>
+      </div>
       <section className="space-y-4">
         <header className="flex items-baseline justify-between">
           <div>
@@ -183,6 +219,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
         </header>
 
         <FuelCellSetList
+          key={`fc-${resetKey}`}
           library={fuelCellLibrary}
           initial={initialFuelCell}
           onChange={handleFuelCellChange}
@@ -212,6 +249,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
         </header>
 
         <OperationProfileSelector
+          key={`op-${resetKey}`}
           library={operationLibrary}
           initial={initialOperation}
           onChange={handleOperationChange}
@@ -227,6 +265,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">결과</h2>
         <ResultsSection
+          key={`results-${resetKey}`}
           fuelCellSets={fuelCellSets}
           fuelCellTotal={fuelCellTotal}
           operation={operationState}

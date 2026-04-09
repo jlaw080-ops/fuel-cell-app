@@ -78,6 +78,22 @@ export function ReportView({ reportId }: Props) {
     });
   }, [snapshot, aiReview, aiSkipped, reportId]);
 
+  function onRegenerateAi() {
+    if (!snapshot || !reportId) return;
+    if (!confirm('현재 AI 검토를 새로 생성하시겠습니까? 기존 내용은 덮어씌워집니다.')) return;
+    setAiSkipped(false);
+    startAi(async () => {
+      const res = await generateAiReview(snapshot);
+      if (res.ok) {
+        setAiReview(res.review);
+        await saveAiReview(reportId, res.review);
+      } else {
+        alert('AI 검토 생성에 실패했습니다.');
+        setAiSkipped(true);
+      }
+    });
+  }
+
   if (loading) return <div className="p-8 text-zinc-500">불러오는 중...</div>;
   if (err) return <div className="p-8 text-red-600">오류: {err}</div>;
   if (!snapshot) {
@@ -106,6 +122,16 @@ export function ReportView({ reportId }: Props) {
           </Link>
         )}
         <span className="flex-1" />
+        {reportId && isOwner && (
+          <button
+            type="button"
+            disabled={aiLoading || !snapshot}
+            onClick={onRegenerateAi}
+            className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white text-zinc-700 disabled:opacity-50"
+          >
+            {aiLoading ? 'AI 생성 중...' : 'AI 검토 재생성'}
+          </button>
+        )}
         {reportId && isOwner && (
           <>
             <button
