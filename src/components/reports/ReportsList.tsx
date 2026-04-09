@@ -6,7 +6,7 @@
  * - clientId 기반 조회
  * - 각 행: 리포트 보기 / 앱으로 불러오기 / 삭제
  */
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getClientId } from '@/lib/session/clientId';
@@ -30,6 +30,50 @@ export function ReportsList() {
   const [editingTitle, setEditingTitle] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // 검색/필터/정렬
+  const [query, setQuery] = useState('');
+  const [publicOnly, setPublicOnly] = useState(false);
+  type SortKey = 'createdAt' | 'title' | 'capacity' | 'payback' | 'npv';
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const displayItems = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let arr = items;
+    if (q) arr = arr.filter((x) => (x.title ?? '').toLowerCase().includes(q));
+    if (publicOnly) arr = arr.filter((x) => x.isPublic);
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const cmp = (a: ReportListItem, b: ReportListItem) => {
+      const nullLast = (v: number | null) => (v == null ? Number.POSITIVE_INFINITY : v);
+      switch (sortKey) {
+        case 'createdAt':
+          return (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * dir;
+        case 'title':
+          return (a.title ?? '').localeCompare(b.title ?? '', 'ko') * dir;
+        case 'capacity':
+          return (a.totalCapacity_kW - b.totalCapacity_kW) * dir;
+        case 'payback':
+          return (nullLast(a.paybackYears) - nullLast(b.paybackYears)) * dir;
+        case 'npv':
+          return (nullLast(a.npv20_원) - nullLast(b.npv20_원)) * dir;
+      }
+    };
+    return [...arr].sort(cmp);
+  }, [items, query, publicOnly, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'title' ? 'asc' : 'desc');
+    }
+  }
+  function sortIndicator(key: SortKey) {
+    if (sortKey !== key) return '';
+    return sortDir === 'asc' ? ' ▲' : ' ▼';
+  }
 
   useEffect(() => {
     const id = getClientId() ?? '';
@@ -129,8 +173,44 @@ export function ReportsList() {
             선택한 {selected.size}건 비교
           </Link>
         )}
-        <span className="text-xs text-zinc-500">총 {items.length}건</span>
+        <span className="text-xs text-zinc-500">
+          {query || publicOnly
+            ? `${displayItems.length} / ${items.length}건`
+            : `총 ${items.length}건`}
+        </span>
       </div>
+
+      {items.length > 0 && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="제목 검색"
+            className="px-3 py-1.5 border border-zinc-300 rounded text-sm w-64"
+          />
+          <label className="inline-flex items-center gap-1.5 text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              checked={publicOnly}
+              onChange={(e) => setPublicOnly(e.target.checked)}
+            />
+            공유 중만 보기
+          </label>
+          {(query || publicOnly) && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('');
+                setPublicOnly(false);
+              }}
+              className="text-xs text-blue-600 underline"
+            >
+              필터 초기화
+            </button>
+          )}
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="border border-dashed border-zinc-300 rounded p-8 text-center text-sm text-zinc-500">
@@ -141,17 +221,49 @@ export function ReportsList() {
           <thead className="bg-zinc-50">
             <tr>
               <th className="px-2 py-2 w-8"></th>
-              <th className="px-3 py-2 text-left">제목</th>
-              <th className="px-3 py-2 text-left">저장일시</th>
-              <th className="px-3 py-2 text-right">총 용량</th>
-              <th className="px-3 py-2 text-right">회수기간</th>
-              <th className="px-3 py-2 text-right">20년 NPV</th>
+              <th
+                className="px-3 py-2 text-left cursor-pointer select-none"
+                onClick={() => toggleSort('title')}
+              >
+                제목{sortIndicator('title')}
+              </th>
+              <th
+                className="px-3 py-2 text-left cursor-pointer select-none"
+                onClick={() => toggleSort('createdAt')}
+              >
+                저장일시{sortIndicator('createdAt')}
+              </th>
+              <th
+                className="px-3 py-2 text-right cursor-pointer select-none"
+                onClick={() => toggleSort('capacity')}
+              >
+                총 용량{sortIndicator('capacity')}
+              </th>
+              <th
+                className="px-3 py-2 text-right cursor-pointer select-none"
+                onClick={() => toggleSort('payback')}
+              >
+                회수기간{sortIndicator('payback')}
+              </th>
+              <th
+                className="px-3 py-2 text-right cursor-pointer select-none"
+                onClick={() => toggleSort('npv')}
+              >
+                20년 NPV{sortIndicator('npv')}
+              </th>
               <th className="px-3 py-2 text-right">20년 IRR</th>
               <th className="px-3 py-2 text-center">액션</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((r) => (
+            {displayItems.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-3 py-8 text-center text-sm text-zinc-500">
+                  조건에 맞는 리포트가 없습니다.
+                </td>
+              </tr>
+            )}
+            {displayItems.map((r) => (
               <tr key={r.id} className="border-t border-zinc-200">
                 <td className="px-2 py-2 text-center">
                   <input
