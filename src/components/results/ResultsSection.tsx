@@ -27,6 +27,7 @@ import {
 } from './EconomicsSettingsPanel';
 import { EconomicsResult } from './EconomicsResult';
 import { SensitivityTable } from './SensitivityTable';
+import { TornadoChart } from './TornadoChart';
 import { InverseCalcPanel } from './InverseCalcPanel';
 import { ReportCharts } from '@/components/charts/ReportCharts';
 
@@ -219,6 +220,24 @@ export function ResultsSection({
               주요 변수를 ±10% / ±20% 변동시켰을 때 NPV·IRR·회수기간이 어떻게 달라지는지 보여줍니다.
             </p>
             <SensitivityTable
+              input={{
+                capex: computed.econ.capex,
+                baseElecRev: computed.revenue.합계.발전_월간총수익_원,
+                baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
+                baseGasCost: computed.revenue.합계.도시가스사용요금_원,
+                baseMaint: computed.econ.baseAnnualMaintenance,
+                maintenanceMode: settings.maintenanceMode,
+                lifetime: settings.lifetime,
+                discountRate: settings.discountRate,
+                electricityEscalation: settings.electricityEscalation,
+                gasEscalation: settings.gasEscalation,
+                maintenanceEscalation: settings.maintenanceEscalation,
+              }}
+            />
+            <h4 className="text-sm font-semibold text-zinc-700 mt-4">
+              변수별 영향 — 토네이도 차트
+            </h4>
+            <TornadoChart
               input={{
                 capex: computed.econ.capex,
                 baseElecRev: computed.revenue.합계.발전_월간총수익_원,
