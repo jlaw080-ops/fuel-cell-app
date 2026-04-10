@@ -26,6 +26,7 @@ import {
   type EconomicsSettings,
 } from './EconomicsSettingsPanel';
 import { EconomicsResult } from './EconomicsResult';
+import { SensitivityTable } from './SensitivityTable';
 import { ReportCharts } from '@/components/charts/ReportCharts';
 
 interface Props {
@@ -205,6 +206,34 @@ export function ResultsSection({
           }}
         />
       </section>
+
+      {computed.econ.capex != null &&
+        computed.econ.baseAnnualMaintenance != null &&
+        computed.revenue.합계.발전_월간총수익_원 != null &&
+        computed.revenue.합계.열생산_월간총수익_원 != null &&
+        computed.revenue.합계.도시가스사용요금_원 != null && (
+          <section className="space-y-3">
+            <h3 className="text-lg font-semibold">민감도 분석</h3>
+            <p className="text-sm text-zinc-500">
+              주요 변수를 ±10% / ±20% 변동시켰을 때 NPV·IRR·회수기간이 어떻게 달라지는지 보여줍니다.
+            </p>
+            <SensitivityTable
+              input={{
+                capex: computed.econ.capex,
+                baseElecRev: computed.revenue.합계.발전_월간총수익_원,
+                baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
+                baseGasCost: computed.revenue.합계.도시가스사용요금_원,
+                baseMaint: computed.econ.baseAnnualMaintenance,
+                maintenanceMode: settings.maintenanceMode,
+                lifetime: settings.lifetime,
+                discountRate: settings.discountRate,
+                electricityEscalation: settings.electricityEscalation,
+                gasEscalation: settings.gasEscalation,
+                maintenanceEscalation: settings.maintenanceEscalation,
+              }}
+            />
+          </section>
+        )}
     </div>
   );
 }

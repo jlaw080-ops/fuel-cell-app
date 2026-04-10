@@ -14,6 +14,14 @@
 import type { ReportSnapshot } from '@/lib/schemas/report';
 import { fmtWon, fmtWonPerKWh, fmtYears, fmtPct, fmtKW, fmtKWh, fmtInt } from '@/lib/format';
 import { ReportCharts } from '@/components/charts/ReportCharts';
+import { calcSensitivity, SENSITIVITY_DELTAS } from '@/lib/calc/sensitivity';
+
+const nf0Sen = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 });
+const nf2Sen = new Intl.NumberFormat('ko-KR', {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 1,
+});
+const DELTA_LABELS_SEN = ['-20%', '-10%', '기준', '+10%', '+20%'];
 
 interface Props {
   snapshot: ReportSnapshot;
@@ -27,6 +35,27 @@ export function ReportDocument({ snapshot, aiReview, aiLoading, aiSkipped }: Pro
   const e = results.economics;
   const summary20 = e.summary.데이터.find((r) => r.기간_년 === 20);
   const createdAt = new Date(meta.createdAt).toLocaleString('ko-KR');
+
+  const sensitivityData =
+    e.capex != null &&
+    e.baseAnnualMaintenance != null &&
+    results.revenue.합계.발전_월간총수익_원 != null &&
+    results.revenue.합계.열생산_월간총수익_원 != null &&
+    results.revenue.합계.도시가스사용요금_원 != null
+      ? calcSensitivity({
+          capex: e.capex,
+          baseElecRev: results.revenue.합계.발전_월간총수익_원,
+          baseHeatRev: results.revenue.합계.열생산_월간총수익_원,
+          baseGasCost: results.revenue.합계.도시가스사용요금_원,
+          baseMaint: e.baseAnnualMaintenance,
+          maintenanceMode: settings.maintenanceMode,
+          lifetime: settings.lifetime,
+          discountRate: settings.discountRate,
+          electricityEscalation: settings.electricityEscalation,
+          gasEscalation: settings.gasEscalation,
+          maintenanceEscalation: settings.maintenanceEscalation,
+        })
+      : null;
 
   return (
     <div className="report-root">
@@ -286,9 +315,116 @@ export function ReportDocument({ snapshot, aiReview, aiLoading, aiSkipped }: Pro
         <ReportCharts snapshot={snapshot} />
       </section>
 
+      {/* 6. 민감도 분석 */}
+      {sensitivityData && (
+        <section className="report-page">
+          <h2>6. 민감도 분석</h2>
+          <p className="report-meta">
+            주요 변수를 ±10% / ±20% 변동시켰을 때 경제성 지표의 변화를 보여줍니다. 각 변수는
+            독립적으로 변동합니다 (다른 변수는 기준값 유지).
+          </p>
+
+          <h3>NPV (만원)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>변수</th>
+                {DELTA_LABELS_SEN.map((l) => (
+                  <th key={l}>{l}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sensitivityData.map((row) => (
+                <tr key={row.paramKey}>
+                  <td>{row.label}</td>
+                  {row.scenarios.map((s, i) => (
+                    <td
+                      key={i}
+                      style={{
+                        textAlign: 'right',
+                        fontWeight: SENSITIVITY_DELTAS[i] === 0 ? 'bold' : undefined,
+                      }}
+                    >
+                      {s.npv == null || !Number.isFinite(s.npv)
+                        ? '-'
+                        : nf0Sen.format(Math.round(s.npv / 10000)) + '만'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <h3>IRR (%)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>변수</th>
+                {DELTA_LABELS_SEN.map((l) => (
+                  <th key={l}>{l}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sensitivityData.map((row) => (
+                <tr key={row.paramKey}>
+                  <td>{row.label}</td>
+                  {row.scenarios.map((s, i) => (
+                    <td
+                      key={i}
+                      style={{
+                        textAlign: 'right',
+                        fontWeight: SENSITIVITY_DELTAS[i] === 0 ? 'bold' : undefined,
+                      }}
+                    >
+                      {s.irr == null || !Number.isFinite(s.irr)
+                        ? '-'
+                        : `${nf2Sen.format(s.irr * 100)}%`}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <h3>회수기간 (년)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>변수</th>
+                {DELTA_LABELS_SEN.map((l) => (
+                  <th key={l}>{l}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sensitivityData.map((row) => (
+                <tr key={row.paramKey}>
+                  <td>{row.label}</td>
+                  {row.scenarios.map((s, i) => (
+                    <td
+                      key={i}
+                      style={{
+                        textAlign: 'right',
+                        fontWeight: SENSITIVITY_DELTAS[i] === 0 ? 'bold' : undefined,
+                      }}
+                    >
+                      {s.payback == null || !Number.isFinite(s.payback)
+                        ? '미회수'
+                        : `${nf2Sen.format(s.payback)}년`}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
       {/* 7. AI 검토 */}
       <section className="report-page">
-        <h2>6. AI 검토 의견</h2>
+        <h2>7. AI 검토 의견</h2>
         {aiLoading && <p className="text-zinc-500">AI 검토 의견 생성 중...</p>}
         {aiReview && <p style={{ whiteSpace: 'pre-wrap' }}>{aiReview}</p>}
         {aiSkipped && !aiReview && (
