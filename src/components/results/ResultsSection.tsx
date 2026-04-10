@@ -139,6 +139,12 @@ export function ResultsSection({
     });
   }
 
+  // baseAnnualMaintenance가 null인 경우(fixedCost 모드이나 라이브러리에 데이터 없음)
+  // CAPEX × maintenanceRatio 로 폴백하여 민감도 분석이 항상 표시되도록 함
+  const baseMaintFallback =
+    computed.econ.baseAnnualMaintenance ??
+    (computed.econ.capex != null ? computed.econ.capex * settings.maintenanceRatio : null);
+
   return (
     <div className="space-y-8">
       <EconomicsSettingsPanel value={settings} onChange={setSettings} />
@@ -211,7 +217,7 @@ export function ResultsSection({
       </section>
 
       {computed.econ.capex != null &&
-        computed.econ.baseAnnualMaintenance != null &&
+        baseMaintFallback != null &&
         computed.revenue.합계.발전_월간총수익_원 != null &&
         computed.revenue.합계.열생산_월간총수익_원 != null &&
         computed.revenue.합계.도시가스사용요금_원 != null && (
@@ -226,7 +232,7 @@ export function ResultsSection({
                 baseElecRev: computed.revenue.합계.발전_월간총수익_원,
                 baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
                 baseGasCost: computed.revenue.합계.도시가스사용요금_원,
-                baseMaint: computed.econ.baseAnnualMaintenance,
+                baseMaint: baseMaintFallback,
                 maintenanceMode: settings.maintenanceMode,
                 lifetime: settings.lifetime,
                 discountRate: settings.discountRate,
@@ -244,7 +250,7 @@ export function ResultsSection({
                 baseElecRev: computed.revenue.합계.발전_월간총수익_원,
                 baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
                 baseGasCost: computed.revenue.합계.도시가스사용요금_원,
-                baseMaint: computed.econ.baseAnnualMaintenance,
+                baseMaint: baseMaintFallback,
                 maintenanceMode: settings.maintenanceMode,
                 lifetime: settings.lifetime,
                 discountRate: settings.discountRate,
@@ -257,7 +263,7 @@ export function ResultsSection({
         )}
 
       {computed.econ.capex != null &&
-        computed.econ.baseAnnualMaintenance != null &&
+        baseMaintFallback != null &&
         computed.revenue.합계.발전_월간총수익_원 != null &&
         computed.revenue.합계.열생산_월간총수익_원 != null &&
         computed.revenue.합계.도시가스사용요금_원 != null && (
@@ -272,7 +278,7 @@ export function ResultsSection({
                 baseElecRev: computed.revenue.합계.발전_월간총수익_원,
                 baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
                 baseGasCost: computed.revenue.합계.도시가스사용요금_원,
-                baseMaint: computed.econ.baseAnnualMaintenance,
+                baseMaint: baseMaintFallback,
                 maintenanceMode: settings.maintenanceMode,
                 lifetime: settings.lifetime,
                 discountRate: settings.discountRate,
@@ -287,7 +293,7 @@ export function ResultsSection({
         )}
 
       {computed.econ.capex != null &&
-        computed.econ.baseAnnualMaintenance != null &&
+        baseMaintFallback != null &&
         computed.revenue.합계.발전_월간총수익_원 != null &&
         computed.revenue.합계.열생산_월간총수익_원 != null &&
         computed.revenue.합계.도시가스사용요금_원 != null && (
@@ -303,7 +309,7 @@ export function ResultsSection({
                 baseElecRev: computed.revenue.합계.발전_월간총수익_원,
                 baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
                 baseGasCost: computed.revenue.합계.도시가스사용요금_원,
-                baseMaint: computed.econ.baseAnnualMaintenance,
+                baseMaint: baseMaintFallback,
                 maintenanceMode: settings.maintenanceMode,
                 lifetime: settings.lifetime,
                 discountRate: settings.discountRate,
