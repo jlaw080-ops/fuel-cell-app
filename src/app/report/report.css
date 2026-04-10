@@ -133,6 +133,11 @@
     text-align: center;
     margin-top: 4pt;
   }
+  /* overflow:auto 래퍼 — 인쇄 시 Chrome이 SVG를 별도 레이어로 취급해
+     렌더링 누락 현상이 발생하므로 visible로 강제. */
+  .chart-scroll-wrapper {
+    overflow: visible !important;
+  }
   /* 차트 카드 — 페이지 중간에서 잘리지 않도록 */
   .report-root .border {
     page-break-inside: avoid;

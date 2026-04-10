@@ -123,7 +123,9 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   return (
     <div className="border border-zinc-200 rounded p-4 bg-white">
       <h4 className="text-sm font-semibold mb-2 text-zinc-700">{title}</h4>
-      <div style={{ overflowX: 'auto' }}>{children}</div>
+      <div className="chart-scroll-wrapper" style={{ overflowX: 'auto' }}>
+        {children}
+      </div>
     </div>
   );
 }
