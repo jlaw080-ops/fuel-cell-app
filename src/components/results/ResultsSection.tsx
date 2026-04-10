@@ -27,6 +27,7 @@ import {
 } from './EconomicsSettingsPanel';
 import { EconomicsResult } from './EconomicsResult';
 import { SensitivityTable } from './SensitivityTable';
+import { InverseCalcPanel } from './InverseCalcPanel';
 import { ReportCharts } from '@/components/charts/ReportCharts';
 
 interface Props {
@@ -231,6 +232,36 @@ export function ResultsSection({
                 gasEscalation: settings.gasEscalation,
                 maintenanceEscalation: settings.maintenanceEscalation,
               }}
+            />
+          </section>
+        )}
+
+      {computed.econ.capex != null &&
+        computed.econ.baseAnnualMaintenance != null &&
+        computed.revenue.합계.발전_월간총수익_원 != null &&
+        computed.revenue.합계.열생산_월간총수익_원 != null &&
+        computed.revenue.합계.도시가스사용요금_원 != null && (
+          <section className="space-y-3">
+            <h3 className="text-lg font-semibold">목표 역산</h3>
+            <p className="text-sm text-zinc-500">
+              목표 IRR 또는 회수기간을 달성하기 위한 최대 CAPEX 또는 필요 발전수익을 역산합니다.
+            </p>
+            <InverseCalcPanel
+              input={{
+                capex: computed.econ.capex,
+                baseElecRev: computed.revenue.합계.발전_월간총수익_원,
+                baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
+                baseGasCost: computed.revenue.합계.도시가스사용요금_원,
+                baseMaint: computed.econ.baseAnnualMaintenance,
+                maintenanceMode: settings.maintenanceMode,
+                lifetime: settings.lifetime,
+                discountRate: settings.discountRate,
+                electricityEscalation: settings.electricityEscalation,
+                gasEscalation: settings.gasEscalation,
+                maintenanceEscalation: settings.maintenanceEscalation,
+              }}
+              currentIrr20={computed.econ.summary.데이터.find((r) => r.기간_년 === 20)?.IRR ?? null}
+              currentPayback={computed.payback}
             />
           </section>
         )}
