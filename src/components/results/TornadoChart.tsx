@@ -6,12 +6,9 @@
  * 5개 변수 각각 ±20% 시나리오에서 NPV·IRR·회수기간의 변동폭을 수평 막대로 표시.
  * 막대 폭이 넓을수록 위에 배치(토네이도 형태).
  *
- * 스택 구조: [투명 오프셋] + [낮은구간] + [높은구간]
- *   - higherIsBetter 지표: 낮은구간=빨강, 높은구간=초록
- *   - lowerIsBetter 지표: 낮은구간=초록, 높은구간=빨강
+ * recharts 대신 순수 SVG로 구현하여 버전 호환성 문제를 회피.
  */
 import { useMemo, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, ReferenceLine, Tooltip } from 'recharts';
 import {
   calcSensitivity,
   type SensitivityInput,
@@ -22,10 +19,13 @@ import {
 // 상수 & 타입
 // ─────────────────────────────────────────────────────────────
 
-const CHART_WIDTH = 600;
-const CHART_HEIGHT = 260;
-const BAR_SIZE = 28;
-const NULL_PAYBACK_PROXY = 50; // 미회수 → 50년으로 대체 표시
+const CHART_WIDTH = 560;
+const BAR_H = 24;
+const BAR_GAP = 10;
+const LABEL_W = 80;
+const AXIS_H = 24;
+const V_PAD = 8;
+const NULL_PAYBACK_PROXY = 50;
 
 type Metric = 'npv' | 'irr' | 'payback';
 
@@ -71,20 +71,14 @@ const METRICS: MetricConfig[] = [
 
 interface TornadoRow {
   label: string;
-  spacer: number;
-  lowerSeg: number;
-  upperSeg: number;
-  /** 툴팁용 실제 값 */
   low: number;
   high: number;
   base: number;
+  span: number;
 }
 
-function buildChartData(
-  rows: ReturnType<typeof calcSensitivity>,
-  mc: MetricConfig,
-): { data: TornadoRow[]; refX: number; domainMin: number; domainMax: number } {
-  const mapped = rows.map((row) => {
+function buildRows(rows: ReturnType<typeof calcSensitivity>, mc: MetricConfig): TornadoRow[] {
+  const mapped: TornadoRow[] = rows.map((row) => {
     const base = mc.getVal(row.scenarios[2]);
     const s0 = mc.getVal(row.scenarios[0]);
     const s4 = mc.getVal(row.scenarios[4]);
@@ -92,60 +86,41 @@ function buildChartData(
     const high = Math.max(s0, s4);
     return { label: row.label, base, low, high, span: high - low };
   });
-
-  // 변동폭 내림차순 정렬 → 토네이도 형태
   mapped.sort((a, b) => b.span - a.span);
+  return mapped;
+}
 
-  const globalMin = Math.min(...mapped.map((r) => r.low));
-  const globalMax = Math.max(...mapped.map((r) => r.high));
-  const pad = Math.max((globalMax - globalMin) * 0.08, Math.abs(globalMax) * 0.01);
-  const domainMin = globalMin - pad;
-  const domainMax = globalMax + pad;
-
-  const baseVal = mapped[0]?.base ?? 0;
-  const refX = baseVal - domainMin;
-
-  const data: TornadoRow[] = mapped.map((r) => {
-    const spacer = r.low - domainMin;
-    const lowerSeg = r.base - r.low; // base 미만 구간
-    const upperSeg = r.high - r.base; // base 초과 구간
-    return { label: r.label, spacer, lowerSeg, upperSeg, low: r.low, high: r.high, base: r.base };
-  });
-
-  return { data, refX, domainMin, domainMax };
+function buildDomain(rows: TornadoRow[]): { domainMin: number; domainMax: number } {
+  const globalMin = Math.min(...rows.map((r) => r.low));
+  const globalMax = Math.max(...rows.map((r) => r.high));
+  const range = globalMax - globalMin;
+  const pad = Math.max(range * 0.08, Math.abs(globalMax) * 0.01, 1e-9);
+  return { domainMin: globalMin - pad, domainMax: globalMax + pad };
 }
 
 // ─────────────────────────────────────────────────────────────
-// 커스텀 툴팁
+// 축 눈금 계산 (약 5개)
 // ─────────────────────────────────────────────────────────────
 
-interface CustomTooltipPayloadItem {
-  payload: TornadoRow;
-}
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: CustomTooltipPayloadItem[];
-  mc: MetricConfig;
-}
-
-function CustomTooltip({ active, payload, mc }: CustomTooltipProps) {
-  if (!active || !payload?.length) return null;
-  const row = payload[0].payload;
-  return (
-    <div className="rounded border border-zinc-200 bg-white px-3 py-2 text-xs shadow">
-      <p className="font-semibold text-zinc-800 mb-1">{row.label}</p>
-      <p className="text-zinc-600">
-        기준: <span className="font-medium text-zinc-900">{mc.fmtTip(row.base)}</span>
-      </p>
-      <p className="text-red-600">
-        −20%: <span className="font-medium">{mc.fmtTip(row.low)}</span>
-      </p>
-      <p className="text-green-700">
-        +20%: <span className="font-medium">{mc.fmtTip(row.high)}</span>
-      </p>
-    </div>
-  );
+function niceTicks(domainMin: number, domainMax: number, count = 5): number[] {
+  const range = domainMax - domainMin;
+  if (range <= 0) return [domainMin];
+  const rawStep = range / (count - 1);
+  const magnitude = Math.pow(10, Math.floor(Math.log10(Math.abs(rawStep))));
+  const niceSteps = [1, 2, 2.5, 5, 10];
+  let step = magnitude;
+  for (const s of niceSteps) {
+    if (s * magnitude >= rawStep) {
+      step = s * magnitude;
+      break;
+    }
+  }
+  const first = Math.ceil(domainMin / step) * step;
+  const ticks: number[] = [];
+  for (let t = first; t <= domainMax + step * 0.01; t += step) {
+    ticks.push(parseFloat(t.toPrecision(10)));
+  }
+  return ticks;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -158,22 +133,29 @@ interface Props {
 
 export function TornadoChart({ input }: Props) {
   const [metric, setMetric] = useState<Metric>('npv');
+  const [tooltip, setTooltip] = useState<{
+    row: TornadoRow;
+    x: number;
+    y: number;
+  } | null>(null);
+
   const analysis = useMemo(() => calcSensitivity(input), [input]);
   const mc = METRICS.find((m) => m.key === metric)!;
+  const rows = useMemo(() => buildRows(analysis, mc), [analysis, mc]);
+  const { domainMin, domainMax } = useMemo(() => buildDomain(rows), [rows]);
 
-  const { data, refX, domainMin, domainMax } = useMemo(
-    () => buildChartData(analysis, mc),
-    [analysis, mc],
-  );
+  const plotW = CHART_WIDTH - LABEL_W;
+  const chartH = rows.length * (BAR_H + BAR_GAP) + V_PAD * 2 + AXIS_H;
 
-  // higherIsBetter: lowerSeg=빨강(악화), upperSeg=초록(개선)
-  // lowerIsBetter:  lowerSeg=초록(개선), upperSeg=빨강(악화)
-  const lowerColor = mc.higherIsBetter ? '#fca5a5' : '#86efac'; // red-300 : green-300
-  const upperColor = mc.higherIsBetter ? '#86efac' : '#fca5a5'; // green-300 : red-300
+  const toX = (v: number) => ((v - domainMin) / (domainMax - domainMin)) * plotW;
+  const baseX = toX(rows[0]?.base ?? domainMin);
+
+  const lowerFill = mc.higherIsBetter ? '#fca5a5' : '#86efac';
+  const upperFill = mc.higherIsBetter ? '#86efac' : '#fca5a5';
   const lowerStroke = mc.higherIsBetter ? '#dc2626' : '#16a34a';
   const upperStroke = mc.higherIsBetter ? '#16a34a' : '#dc2626';
 
-  const domainRange = domainMax - domainMin;
+  const ticks = useMemo(() => niceTicks(domainMin, domainMax, 5), [domainMin, domainMax]);
 
   return (
     <div className="space-y-3">
@@ -199,72 +181,165 @@ export function TornadoChart({ input }: Props) {
       </div>
 
       {/* 차트 */}
-      <div className="overflow-x-auto">
-        <BarChart
+      <div className="overflow-x-auto relative">
+        <svg
           width={CHART_WIDTH}
-          height={CHART_HEIGHT}
-          data={data}
-          layout="vertical"
-          margin={{ top: 8, right: 16, bottom: 8, left: 90 }}
+          height={chartH}
+          style={{ overflow: 'visible', userSelect: 'none' }}
         >
-          <XAxis
-            type="number"
-            domain={[0, domainRange]}
-            tickCount={6}
-            tickFormatter={(v: number) => mc.fmtAxis(v + domainMin)}
-            tick={{ fontSize: 10 }}
-          />
-          <YAxis type="category" dataKey="label" width={84} tick={{ fontSize: 11 }} />
-          <Tooltip
-            content={(props) => (
-              <CustomTooltip
-                active={props.active}
-                payload={props.payload as unknown as CustomTooltipPayloadItem[] | undefined}
-                mc={mc}
-              />
-            )}
-            cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+          {/* Y축 레이블 + 막대 */}
+          {rows.map((row, i) => {
+            const barY = V_PAD + i * (BAR_H + BAR_GAP);
+            const barCenterY = barY + BAR_H / 2;
+            const lowX = toX(row.low);
+            const highX = toX(row.high);
+            const baseXRow = toX(row.base);
+
+            // 왼쪽 세그먼트: low → base
+            const leftX = Math.min(lowX, baseXRow);
+            const leftW = Math.abs(baseXRow - lowX);
+            // 오른쪽 세그먼트: base → high
+            const rightX = Math.min(highX, baseXRow);
+            const rightW = Math.abs(highX - baseXRow);
+
+            const leftFill = row.low < row.base ? lowerFill : upperFill;
+            const leftStr = row.low < row.base ? lowerStroke : upperStroke;
+            const rightFill = row.high > row.base ? upperFill : lowerFill;
+            const rightStr = row.high > row.base ? upperStroke : lowerStroke;
+
+            return (
+              <g key={row.label}>
+                {/* 레이블 */}
+                <text
+                  x={LABEL_W - 6}
+                  y={barCenterY + 4}
+                  textAnchor="end"
+                  fontSize={11}
+                  fill="#52525b"
+                >
+                  {row.label}
+                </text>
+
+                {/* 왼쪽 막대 (low → base) */}
+                {leftW > 0 && (
+                  <rect
+                    x={LABEL_W + leftX}
+                    y={barY}
+                    width={leftW}
+                    height={BAR_H}
+                    fill={leftFill}
+                    stroke={leftStr}
+                    strokeWidth={0.5}
+                    rx={2}
+                    onMouseEnter={(e) => {
+                      const svg = e.currentTarget.closest('svg')!;
+                      const rect = svg.getBoundingClientRect();
+                      setTooltip({
+                        row,
+                        x: e.clientX - rect.left,
+                        y: barY,
+                      });
+                    }}
+                    onMouseLeave={() => setTooltip(null)}
+                    style={{ cursor: 'default' }}
+                  />
+                )}
+
+                {/* 오른쪽 막대 (base → high) */}
+                {rightW > 0 && (
+                  <rect
+                    x={LABEL_W + rightX}
+                    y={barY}
+                    width={rightW}
+                    height={BAR_H}
+                    fill={rightFill}
+                    stroke={rightStr}
+                    strokeWidth={0.5}
+                    rx={2}
+                    onMouseEnter={(e) => {
+                      const svg = e.currentTarget.closest('svg')!;
+                      const rect = svg.getBoundingClientRect();
+                      setTooltip({
+                        row,
+                        x: e.clientX - rect.left,
+                        y: barY,
+                      });
+                    }}
+                    onMouseLeave={() => setTooltip(null)}
+                    style={{ cursor: 'default' }}
+                  />
+                )}
+              </g>
+            );
+          })}
+
+          {/* 기준선 */}
+          <line
+            x1={LABEL_W + baseX}
+            y1={V_PAD}
+            x2={LABEL_W + baseX}
+            y2={chartH - AXIS_H}
+            stroke="#3f3f46"
+            strokeWidth={1.5}
+            strokeDasharray="4 3"
           />
 
-          {/* 투명 오프셋 (위치 조정용) */}
-          <Bar
-            dataKey="spacer"
-            stackId="t"
-            fill="transparent"
-            stroke="none"
-            isAnimationActive={false}
-            barSize={BAR_SIZE}
-            legendType="none"
-          />
+          {/* X축 */}
+          {ticks.map((t) => {
+            const tx = toX(t);
+            if (tx < -2 || tx > plotW + 2) return null;
+            return (
+              <g key={t}>
+                <line
+                  x1={LABEL_W + tx}
+                  y1={chartH - AXIS_H}
+                  x2={LABEL_W + tx}
+                  y2={chartH - AXIS_H + 4}
+                  stroke="#d4d4d8"
+                  strokeWidth={1}
+                />
+                <text
+                  x={LABEL_W + tx}
+                  y={chartH - 6}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fill="#71717a"
+                >
+                  {mc.fmtAxis(t)}
+                </text>
+              </g>
+            );
+          })}
 
-          {/* 낮은 구간 (base 미만) */}
-          <Bar
-            dataKey="lowerSeg"
-            stackId="t"
-            fill={lowerColor}
-            stroke={lowerStroke}
-            strokeWidth={0.5}
-            isAnimationActive={false}
-            barSize={BAR_SIZE}
-            legendType="none"
+          {/* X축 베이스 라인 */}
+          <line
+            x1={LABEL_W}
+            y1={chartH - AXIS_H}
+            x2={LABEL_W + plotW}
+            y2={chartH - AXIS_H}
+            stroke="#d4d4d8"
+            strokeWidth={1}
           />
+        </svg>
 
-          {/* 높은 구간 (base 초과) */}
-          <Bar
-            dataKey="upperSeg"
-            stackId="t"
-            fill={upperColor}
-            stroke={upperStroke}
-            strokeWidth={0.5}
-            isAnimationActive={false}
-            barSize={BAR_SIZE}
-            radius={[0, 3, 3, 0]}
-            legendType="none"
-          />
-
-          {/* 기준값 참조선 */}
-          <ReferenceLine x={refX} stroke="#3f3f46" strokeWidth={1.5} strokeDasharray="4 3" />
-        </BarChart>
+        {/* 툴팁 */}
+        {tooltip && (
+          <div
+            className="pointer-events-none absolute z-10 rounded border border-zinc-200 bg-white px-3 py-2 text-xs shadow"
+            style={{ left: tooltip.x + 8, top: tooltip.y }}
+          >
+            <p className="font-semibold text-zinc-800 mb-1">{tooltip.row.label}</p>
+            <p className="text-zinc-600">
+              기준: <span className="font-medium text-zinc-900">{mc.fmtTip(tooltip.row.base)}</span>
+            </p>
+            <p className="text-red-600">
+              −20%: <span className="font-medium">{mc.fmtTip(tooltip.row.low)}</span>
+            </p>
+            <p className="text-green-700">
+              +20%: <span className="font-medium">{mc.fmtTip(tooltip.row.high)}</span>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 범례 */}
@@ -272,14 +347,14 @@ export function TornadoChart({ input }: Props) {
         <span className="flex items-center gap-1">
           <span
             className="inline-block w-3 h-3 rounded-sm"
-            style={{ background: upperColor, border: `1px solid ${upperStroke}` }}
+            style={{ background: upperFill, border: `1px solid ${upperStroke}` }}
           />
           {mc.higherIsBetter ? '개선 (+20%)' : '개선 (−20%)'}
         </span>
         <span className="flex items-center gap-1">
           <span
             className="inline-block w-3 h-3 rounded-sm"
-            style={{ background: lowerColor, border: `1px solid ${lowerStroke}` }}
+            style={{ background: lowerFill, border: `1px solid ${lowerStroke}` }}
           />
           {mc.higherIsBetter ? '악화 (−20%)' : '악화 (+20%)'}
         </span>
