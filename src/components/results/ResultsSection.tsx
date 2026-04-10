@@ -29,6 +29,7 @@ import { EconomicsResult } from './EconomicsResult';
 import { SensitivityTable } from './SensitivityTable';
 import { TornadoChart } from './TornadoChart';
 import { InverseCalcPanel } from './InverseCalcPanel';
+import { ProfitabilityMap } from './ProfitabilityMap';
 import { ReportCharts } from '@/components/charts/ReportCharts';
 
 interface Props {
@@ -281,6 +282,35 @@ export function ResultsSection({
               }}
               currentIrr20={computed.econ.summary.데이터.find((r) => r.기간_년 === 20)?.IRR ?? null}
               currentPayback={computed.payback}
+            />
+          </section>
+        )}
+
+      {computed.econ.capex != null &&
+        computed.econ.baseAnnualMaintenance != null &&
+        computed.revenue.합계.발전_월간총수익_원 != null &&
+        computed.revenue.합계.열생산_월간총수익_원 != null &&
+        computed.revenue.합계.도시가스사용요금_원 != null && (
+          <section className="space-y-3">
+            <h3 className="text-lg font-semibold">수익성 지도</h3>
+            <p className="text-sm text-zinc-500">
+              CAPEX와 발전수익을 ±50% 범위로 변동시켰을 때 수익성 지표 변화를 2D 히트맵으로
+              표시합니다.
+            </p>
+            <ProfitabilityMap
+              input={{
+                capex: computed.econ.capex,
+                baseElecRev: computed.revenue.합계.발전_월간총수익_원,
+                baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
+                baseGasCost: computed.revenue.합계.도시가스사용요금_원,
+                baseMaint: computed.econ.baseAnnualMaintenance,
+                maintenanceMode: settings.maintenanceMode,
+                lifetime: settings.lifetime,
+                discountRate: settings.discountRate,
+                electricityEscalation: settings.electricityEscalation,
+                gasEscalation: settings.gasEscalation,
+                maintenanceEscalation: settings.maintenanceEscalation,
+              }}
             />
           </section>
         )}
