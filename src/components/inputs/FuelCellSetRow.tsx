@@ -104,39 +104,43 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-12 gap-2 items-center border border-zinc-200 p-3 rounded">
-      <select
-        aria-label="형식"
-        className="col-span-2 border border-zinc-300 rounded px-2 py-1"
-        value={value.형식 ?? ''}
-        onChange={(e) => handleType((e.target.value || null) as FuelCellType | null)}
-      >
-        <option value="">형식</option>
-        {TYPES.map((t) => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </select>
+    <div className="border border-zinc-200 p-3 rounded space-y-2">
+      {/* 형식 / 제조사 */}
+      <div className="grid grid-cols-2 gap-2">
+        <select
+          aria-label="형식"
+          className="border border-zinc-300 rounded px-2 py-1 text-sm"
+          value={value.형식 ?? ''}
+          onChange={(e) => handleType((e.target.value || null) as FuelCellType | null)}
+        >
+          <option value="">형식</option>
+          {TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
 
-      <select
-        aria-label="제조사"
-        className="col-span-3 border border-zinc-300 rounded px-2 py-1 disabled:bg-zinc-100"
-        value={value.제조사 ?? ''}
-        disabled={!value.형식}
-        onChange={(e) => handleManufacturer(e.target.value || null)}
-      >
-        <option value="">제조사</option>
-        {manufacturers.map((m) => (
-          <option key={m} value={m}>
-            {m}
-          </option>
-        ))}
-      </select>
+        <select
+          aria-label="제조사"
+          className="border border-zinc-300 rounded px-2 py-1 text-sm disabled:bg-zinc-100"
+          value={value.제조사 ?? ''}
+          disabled={!value.형식}
+          onChange={(e) => handleManufacturer(e.target.value || null)}
+        >
+          <option value="">제조사</option>
+          {manufacturers.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </div>
 
+      {/* 모델 (full width) */}
       <select
         aria-label="모델"
-        className="col-span-3 border border-zinc-300 rounded px-2 py-1 disabled:bg-zinc-100"
+        className="w-full border border-zinc-300 rounded px-2 py-1 text-sm disabled:bg-zinc-100"
         value={value.모델 ?? ''}
         disabled={!value.제조사}
         onChange={(e) => handleModel(e.target.value || null)}
@@ -149,55 +153,56 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
         ))}
       </select>
 
-      <div className="col-span-2 text-sm text-zinc-600 text-right">
-        {value.발전용량_kW != null ? `${value.발전용량_kW} kW` : '-'}
+      {/* 용량 / 수량 / 삭제 */}
+      <div className="flex items-center gap-2">
+        <span className="flex-1 text-sm text-zinc-600">
+          {value.발전용량_kW != null ? `${value.발전용량_kW} kW` : '-'}
+        </span>
+        <input
+          aria-label="설치수량"
+          type="number"
+          min={1}
+          className="w-16 border border-zinc-300 rounded px-2 py-1 text-right text-sm"
+          value={value.설치수량 ?? ''}
+          onChange={(e) => handleQty(e.target.value)}
+          placeholder="수량"
+        />
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-red-600 text-sm hover:underline shrink-0"
+        >
+          삭제
+        </button>
       </div>
 
-      <input
-        aria-label="설치수량"
-        type="number"
-        min={1}
-        className="col-span-1 border border-zinc-300 rounded px-2 py-1 text-right"
-        value={value.설치수량 ?? ''}
-        onChange={(e) => handleQty(e.target.value)}
-        placeholder="수량"
-      />
-
-      <button
-        type="button"
-        onClick={onRemove}
-        className="col-span-1 text-red-600 text-sm hover:underline"
-      >
-        삭제
-      </button>
-
       {(needsCapexOverride || needsMaintOverride) && (
-        <div className="col-span-12 mt-2 grid grid-cols-12 gap-2 bg-amber-50 border border-amber-200 rounded p-2 text-xs">
-          <div className="col-span-12 text-amber-800">
+        <div className="mt-1 flex flex-col gap-2 bg-amber-50 border border-amber-200 rounded p-2 text-xs">
+          <div className="text-amber-800">
             이 모델은 라이브러리 단가가 없습니다. 직접 입력하세요.
           </div>
           {needsCapexOverride && (
-            <label className="col-span-6 flex items-center gap-2">
-              <span className="text-zinc-700">kW당 설치단가 (원)</span>
+            <label className="flex flex-wrap items-center gap-2">
+              <span className="text-zinc-700 shrink-0">kW당 설치단가 (원)</span>
               <input
                 type="number"
                 min={0}
                 value={value.kW당설치단가_override ?? ''}
                 onChange={(e) => handleCapexOverride(e.target.value)}
-                className="flex-1 border border-zinc-300 rounded px-2 py-1"
+                className="flex-1 min-w-0 border border-zinc-300 rounded px-2 py-1"
                 placeholder="예: 10000000"
               />
             </label>
           )}
           {needsMaintOverride && (
-            <label className="col-span-6 flex items-center gap-2">
-              <span className="text-zinc-700">kW당 연간유지비 (원)</span>
+            <label className="flex flex-wrap items-center gap-2">
+              <span className="text-zinc-700 shrink-0">kW당 연간유지비 (원)</span>
               <input
                 type="number"
                 min={0}
                 value={value.kW당연간유지비용_override ?? ''}
                 onChange={(e) => handleMaintOverride(e.target.value)}
-                className="flex-1 border border-zinc-300 rounded px-2 py-1"
+                className="flex-1 min-w-0 border border-zinc-300 rounded px-2 py-1"
                 placeholder="예: 2200000"
               />
             </label>

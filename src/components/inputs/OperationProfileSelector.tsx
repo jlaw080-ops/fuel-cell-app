@@ -77,11 +77,11 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-12 gap-2 items-center">
-        <label className="col-span-3 text-sm">연간 운전유형</label>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <label className="text-sm shrink-0 w-24">연간 운전유형</label>
         <select
           aria-label="연간 운전유형"
-          className="col-span-5 border border-zinc-300 rounded px-2 py-1"
+          className="flex-1 min-w-[8rem] border border-zinc-300 rounded px-2 py-1 text-sm"
           value={state.연간운전유형 ?? ''}
           onChange={(e) => handleProfile((e.target.value || null) as OperationProfileKey | null)}
         >
@@ -92,7 +92,7 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
             </option>
           ))}
         </select>
-        <div className="col-span-4 text-sm text-zinc-600">
+        <div className="text-sm text-zinc-600 shrink-0">
           {profile ? `연간 ${profile.연간가동일}일 가동` : '-'}
         </div>
       </div>
@@ -100,7 +100,7 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
       {profile && (
         <div className="border border-zinc-200 rounded p-3">
           <div className="text-sm font-medium mb-2">월별 가동일 (read-only)</div>
-          <div className="grid grid-cols-12 gap-1 text-center text-xs">
+          <div className="grid grid-cols-4 sm:grid-cols-12 gap-1 text-center text-xs">
             {MONTHS.map((m, i) => (
               <div key={m} className="space-y-1">
                 <div className="text-zinc-500">{m}</div>
@@ -111,42 +111,46 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
         </div>
       )}
 
-      <div className="grid grid-cols-12 gap-2 items-center">
-        <label className="col-span-3 text-sm">일일 중간부하 운전시간</label>
-        <input
-          aria-label="일일 중간부하 운전시간"
-          type="number"
-          min={0}
-          max={24}
-          step="0.5"
-          className="col-span-3 border border-zinc-300 rounded px-2 py-1 text-right"
-          value={state.일일_중간부하_운전시간}
-          onChange={(e) =>
-            setState((prev) => ({
-              ...prev,
-              일일_중간부하_운전시간: clampHour(e.target.value),
-            }))
-          }
-        />
-        <span className="col-span-1 text-sm text-zinc-600">h</span>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex items-center gap-2">
+          <label className="text-sm shrink-0">중간부하</label>
+          <input
+            aria-label="일일 중간부하 운전시간"
+            type="number"
+            min={0}
+            max={24}
+            step="0.5"
+            className="w-16 border border-zinc-300 rounded px-2 py-1 text-right text-sm"
+            value={state.일일_중간부하_운전시간}
+            onChange={(e) =>
+              setState((prev) => ({
+                ...prev,
+                일일_중간부하_운전시간: clampHour(e.target.value),
+              }))
+            }
+          />
+          <span className="text-sm text-zinc-600">h</span>
+        </div>
 
-        <label className="col-span-2 text-sm text-right">최대부하</label>
-        <input
-          aria-label="일일 최대부하 운전시간"
-          type="number"
-          min={0}
-          max={24}
-          step="0.5"
-          className="col-span-2 border border-zinc-300 rounded px-2 py-1 text-right"
-          value={state.일일_최대부하_운전시간}
-          onChange={(e) =>
-            setState((prev) => ({
-              ...prev,
-              일일_최대부하_운전시간: clampHour(e.target.value),
-            }))
-          }
-        />
-        <span className="col-span-1 text-sm text-zinc-600">h</span>
+        <div className="flex items-center gap-2">
+          <label className="text-sm shrink-0">최대부하</label>
+          <input
+            aria-label="일일 최대부하 운전시간"
+            type="number"
+            min={0}
+            max={24}
+            step="0.5"
+            className="w-16 border border-zinc-300 rounded px-2 py-1 text-right text-sm"
+            value={state.일일_최대부하_운전시간}
+            onChange={(e) =>
+              setState((prev) => ({
+                ...prev,
+                일일_최대부하_운전시간: clampHour(e.target.value),
+              }))
+            }
+          />
+          <span className="text-sm text-zinc-600">h</span>
+        </div>
       </div>
 
       <div className="text-sm">

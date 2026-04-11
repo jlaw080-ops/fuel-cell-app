@@ -203,7 +203,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
         </button>
       </div>
       <section className="space-y-4">
-        <header className="flex items-baseline justify-between">
+        <header className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="text-xl font-semibold">연료전지 정보 입력</h2>
             <p className="text-sm text-zinc-600">형식 → 제조사 → 모델 순으로 선택하세요.</p>
@@ -212,7 +212,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
             type="button"
             onClick={onSaveFuelCell}
             disabled={pending || !clientId}
-            className="px-4 py-2 bg-zinc-900 text-white rounded text-sm disabled:opacity-50"
+            className="px-4 py-2 bg-zinc-900 text-white rounded text-sm disabled:opacity-50 shrink-0"
           >
             {pending ? '저장 중...' : '연료전지 정보 저장'}
           </button>
@@ -233,7 +233,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
       </section>
 
       <section className="space-y-4">
-        <header className="flex items-baseline justify-between">
+        <header className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="text-xl font-semibold">운전시간 입력</h2>
             <p className="text-sm text-zinc-600">연간 운전유형과 일일 운전시간을 입력하세요.</p>
@@ -242,7 +242,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
             type="button"
             onClick={onSaveOperation}
             disabled={pending || !clientId || !operationValid}
-            className="px-4 py-2 bg-zinc-900 text-white rounded text-sm disabled:opacity-50"
+            className="px-4 py-2 bg-zinc-900 text-white rounded text-sm disabled:opacity-50 shrink-0"
           >
             {pending ? '저장 중...' : '운전시간 저장'}
           </button>
