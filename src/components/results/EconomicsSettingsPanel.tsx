@@ -7,6 +7,14 @@
  * 부모(ResultsSection)는 useState로 값 보관 후 calcEconomics에 전달.
  */
 import { DEFAULTS, type MaintenanceMode } from '@/lib/calc/economics/economics';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export interface EconomicsSettings {
   lifetime: number;
@@ -54,92 +62,89 @@ export function EconomicsSettingsPanel({ value, onChange }: Props) {
       <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
         <label className="flex flex-col gap-1">
           <span className="text-zinc-600">분석기간 (년)</span>
-          <input
+          <Input
             type="number"
             min={1}
             max={50}
             value={value.lifetime}
             onChange={(e) => update('lifetime', Number(e.target.value) || 0)}
-            className="border border-zinc-300 rounded px-2 py-1"
           />
         </label>
 
         <label className="flex flex-col gap-1">
           <span className="text-zinc-600">할인율 (%, 명목)</span>
-          <input
+          <Input
             type="number"
             step={0.1}
             defaultValue={value.discountRate * 100}
             onChange={(e) => update('discountRate', pctToNum(e.target.value))}
-            className="border border-zinc-300 rounded px-2 py-1"
           />
         </label>
 
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <span className="text-zinc-600">유지보수 모드</span>
-          <select
+          <Select
             value={value.maintenanceMode}
-            onChange={(e) => update('maintenanceMode', e.target.value as MaintenanceMode)}
-            className="border border-zinc-300 rounded px-2 py-1"
+            onValueChange={(v) => update('maintenanceMode', v as MaintenanceMode)}
           >
-            <option value="fixedCost">라이브러리 단가 (kW당 연간유지비용)</option>
-            <option value="ratio">초기투자비 대비 비율</option>
-          </select>
-        </label>
+            <SelectTrigger size="sm" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fixedCost">라이브러리 단가 (kW당 연간유지비용)</SelectItem>
+              <SelectItem value="ratio">초기투자비 대비 비율</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         <label className="flex flex-col gap-1">
           <span className="text-zinc-600">유지보수 비율 (%, ratio 모드만)</span>
-          <input
+          <Input
             type="number"
             step={0.1}
             defaultValue={value.maintenanceRatio * 100}
             disabled={value.maintenanceMode !== 'ratio'}
             onChange={(e) => update('maintenanceRatio', pctToNum(e.target.value))}
-            className="border border-zinc-300 rounded px-2 py-1 disabled:bg-zinc-100"
           />
         </label>
 
         <label className="flex flex-col gap-1">
           <span className="text-zinc-600">전기요금 상승률 (%)</span>
-          <input
+          <Input
             type="number"
             step={0.1}
             defaultValue={value.electricityEscalation * 100}
             onChange={(e) => update('electricityEscalation', pctToNum(e.target.value))}
-            className="border border-zinc-300 rounded px-2 py-1"
           />
         </label>
 
         <label className="flex flex-col gap-1">
           <span className="text-zinc-600">가스요금 상승률 (%)</span>
-          <input
+          <Input
             type="number"
             step={0.1}
             defaultValue={value.gasEscalation * 100}
             onChange={(e) => update('gasEscalation', pctToNum(e.target.value))}
-            className="border border-zinc-300 rounded px-2 py-1"
           />
         </label>
 
         <label className="flex flex-col gap-1">
           <span className="text-zinc-600">유지보수 상승률 (%)</span>
-          <input
+          <Input
             type="number"
             step={0.1}
             defaultValue={value.maintenanceEscalation * 100}
             onChange={(e) => update('maintenanceEscalation', pctToNum(e.target.value))}
-            className="border border-zinc-300 rounded px-2 py-1"
           />
         </label>
 
         <label className="flex flex-col gap-1">
           <span className="text-zinc-600">가스보일러 효율 (%)</span>
-          <input
+          <Input
             type="number"
             step={0.1}
             defaultValue={value.boilerEfficiency * 100}
             onChange={(e) => update('boilerEfficiency', pctToNum(e.target.value))}
-            className="border border-zinc-300 rounded px-2 py-1"
           />
         </label>
       </div>

@@ -11,6 +11,13 @@ import type { FuelCellLibrary, FuelCellType } from '@/types/fuelCell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export interface FuelCellSetState {
   set_id: string;
@@ -111,51 +118,57 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
       <CardContent className="space-y-2">
         {/* 형식 / 제조사 */}
         <div className="grid grid-cols-2 gap-2">
-          <select
-            aria-label="형식"
-            className="border border-zinc-300 rounded px-2 py-1 text-sm"
+          <Select
             value={value.형식 ?? ''}
-            onChange={(e) => handleType((e.target.value || null) as FuelCellType | null)}
+            onValueChange={(v) => handleType((v || null) as FuelCellType | null)}
           >
-            <option value="">형식</option>
-            {TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger aria-label="형식" size="sm" className="w-full">
+              <SelectValue placeholder="형식" />
+            </SelectTrigger>
+            <SelectContent>
+              {TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <select
-            aria-label="제조사"
-            className="border border-zinc-300 rounded px-2 py-1 text-sm disabled:bg-zinc-100"
+          <Select
             value={value.제조사 ?? ''}
             disabled={!value.형식}
-            onChange={(e) => handleManufacturer(e.target.value || null)}
+            onValueChange={(v) => handleManufacturer(v || null)}
           >
-            <option value="">제조사</option>
-            {manufacturers.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger aria-label="제조사" size="sm" className="w-full">
+              <SelectValue placeholder="제조사" />
+            </SelectTrigger>
+            <SelectContent>
+              {manufacturers.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {m}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* 모델 (full width) */}
-        <select
-          aria-label="모델"
-          className="w-full border border-zinc-300 rounded px-2 py-1 text-sm disabled:bg-zinc-100"
+        <Select
           value={value.모델 ?? ''}
           disabled={!value.제조사}
-          onChange={(e) => handleModel(e.target.value || null)}
+          onValueChange={(v) => handleModel(v || null)}
         >
-          <option value="">모델</option>
-          {models.map((p) => (
-            <option key={p.모델명!} value={p.모델명!}>
-              {p.모델명}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger aria-label="모델" size="sm" className="w-full">
+            <SelectValue placeholder="모델" />
+          </SelectTrigger>
+          <SelectContent>
+            {models.map((p) => (
+              <SelectItem key={p.모델명!} value={p.모델명!}>
+                {p.모델명}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* 용량 / 수량 / 삭제 */}
         <div className="flex items-center gap-2">
