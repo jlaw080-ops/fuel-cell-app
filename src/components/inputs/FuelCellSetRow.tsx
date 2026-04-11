@@ -10,6 +10,7 @@ import { useMemo } from 'react';
 import type { FuelCellLibrary, FuelCellType } from '@/types/fuelCell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 
 export interface FuelCellSetState {
   set_id: string;
@@ -106,113 +107,115 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
   }
 
   return (
-    <div className="border border-zinc-200 p-3 rounded space-y-2">
-      {/* 형식 / 제조사 */}
-      <div className="grid grid-cols-2 gap-2">
-        <select
-          aria-label="형식"
-          className="border border-zinc-300 rounded px-2 py-1 text-sm"
-          value={value.형식 ?? ''}
-          onChange={(e) => handleType((e.target.value || null) as FuelCellType | null)}
-        >
-          <option value="">형식</option>
-          {TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
+    <Card size="sm">
+      <CardContent className="space-y-2">
+        {/* 형식 / 제조사 */}
+        <div className="grid grid-cols-2 gap-2">
+          <select
+            aria-label="형식"
+            className="border border-zinc-300 rounded px-2 py-1 text-sm"
+            value={value.형식 ?? ''}
+            onChange={(e) => handleType((e.target.value || null) as FuelCellType | null)}
+          >
+            <option value="">형식</option>
+            {TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
 
-        <select
-          aria-label="제조사"
-          className="border border-zinc-300 rounded px-2 py-1 text-sm disabled:bg-zinc-100"
-          value={value.제조사 ?? ''}
-          disabled={!value.형식}
-          onChange={(e) => handleManufacturer(e.target.value || null)}
-        >
-          <option value="">제조사</option>
-          {manufacturers.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* 모델 (full width) */}
-      <select
-        aria-label="모델"
-        className="w-full border border-zinc-300 rounded px-2 py-1 text-sm disabled:bg-zinc-100"
-        value={value.모델 ?? ''}
-        disabled={!value.제조사}
-        onChange={(e) => handleModel(e.target.value || null)}
-      >
-        <option value="">모델</option>
-        {models.map((p) => (
-          <option key={p.모델명!} value={p.모델명!}>
-            {p.모델명}
-          </option>
-        ))}
-      </select>
-
-      {/* 용량 / 수량 / 삭제 */}
-      <div className="flex items-center gap-2">
-        <span className="flex-1 text-sm text-zinc-600">
-          {value.발전용량_kW != null ? `${value.발전용량_kW} kW` : '-'}
-        </span>
-        <Input
-          aria-label="설치수량"
-          type="number"
-          min={1}
-          className="w-16 text-right"
-          value={value.설치수량 ?? ''}
-          onChange={(e) => handleQty(e.target.value)}
-          placeholder="수량"
-        />
-        <Button
-          type="button"
-          onClick={onRemove}
-          variant="destructive"
-          size="sm"
-          className="shrink-0"
-        >
-          삭제
-        </Button>
-      </div>
-
-      {(needsCapexOverride || needsMaintOverride) && (
-        <div className="mt-1 flex flex-col gap-2 bg-amber-50 border border-amber-200 rounded p-2 text-xs">
-          <div className="text-amber-800">
-            이 모델은 라이브러리 단가가 없습니다. 직접 입력하세요.
-          </div>
-          {needsCapexOverride && (
-            <label className="flex flex-wrap items-center gap-2">
-              <span className="text-zinc-700 shrink-0">kW당 설치단가 (원)</span>
-              <Input
-                type="number"
-                min={0}
-                value={value.kW당설치단가_override ?? ''}
-                onChange={(e) => handleCapexOverride(e.target.value)}
-                className="flex-1 min-w-0"
-                placeholder="예: 10000000"
-              />
-            </label>
-          )}
-          {needsMaintOverride && (
-            <label className="flex flex-wrap items-center gap-2">
-              <span className="text-zinc-700 shrink-0">kW당 연간유지비 (원)</span>
-              <Input
-                type="number"
-                min={0}
-                value={value.kW당연간유지비용_override ?? ''}
-                onChange={(e) => handleMaintOverride(e.target.value)}
-                className="flex-1 min-w-0"
-                placeholder="예: 2200000"
-              />
-            </label>
-          )}
+          <select
+            aria-label="제조사"
+            className="border border-zinc-300 rounded px-2 py-1 text-sm disabled:bg-zinc-100"
+            value={value.제조사 ?? ''}
+            disabled={!value.형식}
+            onChange={(e) => handleManufacturer(e.target.value || null)}
+          >
+            <option value="">제조사</option>
+            {manufacturers.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
-    </div>
+
+        {/* 모델 (full width) */}
+        <select
+          aria-label="모델"
+          className="w-full border border-zinc-300 rounded px-2 py-1 text-sm disabled:bg-zinc-100"
+          value={value.모델 ?? ''}
+          disabled={!value.제조사}
+          onChange={(e) => handleModel(e.target.value || null)}
+        >
+          <option value="">모델</option>
+          {models.map((p) => (
+            <option key={p.모델명!} value={p.모델명!}>
+              {p.모델명}
+            </option>
+          ))}
+        </select>
+
+        {/* 용량 / 수량 / 삭제 */}
+        <div className="flex items-center gap-2">
+          <span className="flex-1 text-sm text-zinc-600">
+            {value.발전용량_kW != null ? `${value.발전용량_kW} kW` : '-'}
+          </span>
+          <Input
+            aria-label="설치수량"
+            type="number"
+            min={1}
+            className="w-16 text-right"
+            value={value.설치수량 ?? ''}
+            onChange={(e) => handleQty(e.target.value)}
+            placeholder="수량"
+          />
+          <Button
+            type="button"
+            onClick={onRemove}
+            variant="destructive"
+            size="sm"
+            className="shrink-0"
+          >
+            삭제
+          </Button>
+        </div>
+
+        {(needsCapexOverride || needsMaintOverride) && (
+          <div className="mt-1 flex flex-col gap-2 bg-amber-50 border border-amber-200 rounded p-2 text-xs">
+            <div className="text-amber-800">
+              이 모델은 라이브러리 단가가 없습니다. 직접 입력하세요.
+            </div>
+            {needsCapexOverride && (
+              <label className="flex flex-wrap items-center gap-2">
+                <span className="text-zinc-700 shrink-0">kW당 설치단가 (원)</span>
+                <Input
+                  type="number"
+                  min={0}
+                  value={value.kW당설치단가_override ?? ''}
+                  onChange={(e) => handleCapexOverride(e.target.value)}
+                  className="flex-1 min-w-0"
+                  placeholder="예: 10000000"
+                />
+              </label>
+            )}
+            {needsMaintOverride && (
+              <label className="flex flex-wrap items-center gap-2">
+                <span className="text-zinc-700 shrink-0">kW당 연간유지비 (원)</span>
+                <Input
+                  type="number"
+                  min={0}
+                  value={value.kW당연간유지비용_override ?? ''}
+                  onChange={(e) => handleMaintOverride(e.target.value)}
+                  className="flex-1 min-w-0"
+                  placeholder="예: 2200000"
+                />
+              </label>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

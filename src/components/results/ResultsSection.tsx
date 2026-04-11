@@ -19,6 +19,7 @@ import { buildReportSnapshot, saveReportDraftLocal } from '@/lib/report/buildSna
 import { saveReport } from '@/lib/actions/reports';
 import { getClientId } from '@/lib/session/clientId';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { EnergyProductionTable } from './EnergyProductionTable';
 import { RevenueTable } from './RevenueTable';
 import {
@@ -160,33 +161,35 @@ export function ResultsSection({
     <div className="space-y-8">
       <EconomicsSettingsPanel value={settings} onChange={setSettings} />
 
-      <div className="border border-zinc-200 rounded p-4 bg-zinc-50 space-y-3">
-        <div className="flex items-center gap-3">
-          <label htmlFor="report-title" className="text-sm text-zinc-700 whitespace-nowrap">
-            리포트 제목
-          </label>
-          <input
-            id="report-title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={80}
-            placeholder="비워두면 자동 생성됩니다 (예: 30kW 연료전지 (...))"
-            className="flex-1 px-3 py-2 border border-zinc-300 rounded text-sm bg-white"
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-zinc-700 flex-1">
-            리포트를 A4 형식으로 보고 PDF로 저장할 수 있습니다.
-          </span>
-          <Button type="button" onClick={() => openReport(false)} variant="outline">
-            미리보기
-          </Button>
-          <Button type="button" onClick={() => openReport(true)} disabled={saving}>
-            {saving ? '저장 중...' : '저장 + 리포트 보기'}
-          </Button>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3">
+            <label htmlFor="report-title" className="text-sm text-zinc-700 whitespace-nowrap">
+              리포트 제목
+            </label>
+            <input
+              id="report-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={80}
+              placeholder="비워두면 자동 생성됩니다 (예: 30kW 연료전지 (...))"
+              className="flex-1 px-3 py-2 border border-zinc-300 rounded text-sm bg-white"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-zinc-700 flex-1">
+              리포트를 A4 형식으로 보고 PDF로 저장할 수 있습니다.
+            </span>
+            <Button type="button" onClick={() => openReport(false)} variant="outline">
+              미리보기
+            </Button>
+            <Button type="button" onClick={() => openReport(true)} disabled={saving}>
+              {saving ? '저장 중...' : '저장 + 리포트 보기'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
       {saveErr && <div className="text-sm text-red-600">{saveErr}</div>}
 
       <section className="space-y-3">
