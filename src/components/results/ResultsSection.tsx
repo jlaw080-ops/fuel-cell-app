@@ -217,10 +217,11 @@ export function ResultsSection({
       </section>
 
       {computed.econ.capex != null &&
-        baseMaintFallback != null &&
-        computed.revenue.합계.발전_월간총수익_원 != null &&
-        computed.revenue.합계.열생산_월간총수익_원 != null &&
-        computed.revenue.합계.도시가스사용요금_원 != null && (
+      baseMaintFallback != null &&
+      computed.revenue.합계.발전_월간총수익_원 != null &&
+      computed.revenue.합계.열생산_월간총수익_원 != null &&
+      computed.revenue.합계.도시가스사용요금_원 != null ? (
+        <>
           <section className="space-y-3">
             <h3 className="text-lg font-semibold">민감도 분석</h3>
             <p className="text-sm text-zinc-500">
@@ -260,13 +261,7 @@ export function ResultsSection({
               }}
             />
           </section>
-        )}
 
-      {computed.econ.capex != null &&
-        baseMaintFallback != null &&
-        computed.revenue.합계.발전_월간총수익_원 != null &&
-        computed.revenue.합계.열생산_월간총수익_원 != null &&
-        computed.revenue.합계.도시가스사용요금_원 != null && (
           <section className="space-y-3">
             <h3 className="text-lg font-semibold">목표 역산</h3>
             <p className="text-sm text-zinc-500">
@@ -290,13 +285,7 @@ export function ResultsSection({
               currentPayback={computed.payback}
             />
           </section>
-        )}
 
-      {computed.econ.capex != null &&
-        baseMaintFallback != null &&
-        computed.revenue.합계.발전_월간총수익_원 != null &&
-        computed.revenue.합계.열생산_월간총수익_원 != null &&
-        computed.revenue.합계.도시가스사용요금_원 != null && (
           <section className="space-y-3">
             <h3 className="text-lg font-semibold">수익성 지도</h3>
             <p className="text-sm text-zinc-500">
@@ -319,7 +308,45 @@ export function ResultsSection({
               }}
             />
           </section>
-        )}
+        </>
+      ) : (
+        <section className="space-y-2 p-4 rounded border border-amber-200 bg-amber-50">
+          <h3 className="text-base font-semibold text-amber-800">
+            민감도 분석 / 목표 역산 / 수익성 지도를 표시할 수 없습니다
+          </h3>
+          <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
+            {computed.econ.capex == null && (
+              <li>
+                <strong>설치단가 미입력</strong> — 선택한 제품의 kW당 설치단가가 없습니다. 입력
+                화면에서 &ldquo;kW당 설치단가 (원)&rdquo; 필드에 직접 입력해주세요.
+              </li>
+            )}
+            {computed.econ.capex != null && baseMaintFallback == null && (
+              <li>
+                <strong>유지비 미입력</strong> — 유지비 데이터가 없습니다. 경제성 설정에서 유지비를
+                직접 입력해주세요.
+              </li>
+            )}
+            {computed.revenue.합계.발전_월간총수익_원 == null && (
+              <li>
+                <strong>발전수익 계산 불가</strong> — 전기요금 데이터 또는 발전량이 없습니다.
+              </li>
+            )}
+            {computed.revenue.합계.열생산_월간총수익_원 == null && (
+              <li>
+                <strong>열수익 계산 불가</strong> — 가스요금(일반용) 데이터 또는 열생산량이
+                없습니다.
+              </li>
+            )}
+            {computed.revenue.합계.도시가스사용요금_원 == null && (
+              <li>
+                <strong>가스요금 계산 불가</strong> — 가스요금(연료전지전용) 데이터 또는 도시가스
+                사용량이 없습니다.
+              </li>
+            )}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
