@@ -264,9 +264,6 @@ export function ResultsSection({
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold">목표 역산</h3>
-            <p className="text-sm text-zinc-500">
-              목표 IRR 또는 회수기간을 달성하기 위한 최대 CAPEX 또는 필요 발전수익을 역산합니다.
-            </p>
             <InverseCalcPanel
               input={{
                 capex: computed.econ.capex,
