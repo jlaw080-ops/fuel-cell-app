@@ -190,6 +190,7 @@ interface WinnerCardInfo {
   label: string;
   winnerTitle: string | null;
   valueStr: string;
+  rawValue: number | null;
 }
 
 function WinnerSummary({ items }: { items: Loaded[] }) {
@@ -202,7 +203,12 @@ function WinnerSummary({ items }: { items: Loaded[] }) {
   ): WinnerCardInfo | null {
     const idx = bestIndex(values, higherIsBetter);
     if (idx == null) return null;
-    return { label: '', winnerTitle: items[idx].title, valueStr: fmt(values[idx]) };
+    return {
+      label: '',
+      winnerTitle: items[idx].title,
+      valueStr: fmt(values[idx]),
+      rawValue: values[idx],
+    };
   }
 
   const cards: WinnerCardInfo[] = (
@@ -257,7 +263,13 @@ function WinnerSummary({ items }: { items: Loaded[] }) {
           >
             {card.winnerTitle ?? '(제목 없음)'}
           </div>
-          <div className="text-xs text-green-700 font-medium mt-0.5">{card.valueStr}</div>
+          <div
+            className={`text-xs font-medium mt-0.5 ${
+              card.rawValue != null && card.rawValue < 0 ? 'text-red-600' : 'text-green-700'
+            }`}
+          >
+            {card.valueStr}
+          </div>
         </div>
       ))}
     </div>
@@ -305,29 +317,28 @@ function CompareBarChart({
           const isBest = bestIdx === i;
           const isNeg = val != null && val < 0;
           return (
-            <div key={item.id} className="flex items-center gap-2 text-xs">
-              <div
-                className="w-28 flex-shrink-0 truncate text-zinc-500 text-right pr-1"
-                title={item.title ?? undefined}
-              >
+            <div key={item.id} className="space-y-0.5">
+              <div className="text-xs text-zinc-500 truncate" title={item.title ?? undefined}>
                 {item.title ?? '(제목 없음)'}
               </div>
-              <div className="flex-1 h-4 bg-zinc-100 rounded overflow-hidden">
-                {val != null && (
-                  <div
-                    className={`h-full rounded ${
-                      isNeg ? 'bg-red-400' : isBest ? 'bg-green-500' : 'bg-blue-400'
-                    }`}
-                    style={{ width: `${pct}%` }}
-                  />
-                )}
-              </div>
-              <div
-                className={`w-24 flex-shrink-0 text-right font-medium ${
-                  isBest ? 'text-green-700' : isNeg ? 'text-red-600' : 'text-zinc-700'
-                }`}
-              >
-                {val == null ? '-' : fmt(val)}
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex-1 h-4 bg-zinc-100 rounded overflow-hidden">
+                  {val != null && (
+                    <div
+                      className={`h-full rounded ${
+                        isNeg ? 'bg-red-400' : isBest ? 'bg-green-500' : 'bg-blue-400'
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  )}
+                </div>
+                <div
+                  className={`w-28 flex-shrink-0 text-right font-medium ${
+                    isBest ? 'text-green-700' : isNeg ? 'text-red-600' : 'text-zinc-700'
+                  }`}
+                >
+                  {val == null ? '-' : fmt(val)}
+                </div>
               </div>
             </div>
           );
