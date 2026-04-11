@@ -375,37 +375,37 @@ export function ReportsList() {
                 <tr>
                   <th className="px-2 py-2 w-8"></th>
                   <th
-                    className="px-3 py-2 text-left cursor-pointer select-none"
+                    className="px-3 py-2 text-left cursor-pointer select-none whitespace-nowrap"
                     onClick={() => toggleSort('title')}
                   >
                     제목{sortIndicator('title')}
                   </th>
                   <th
-                    className="px-3 py-2 text-left cursor-pointer select-none"
+                    className="px-3 py-2 text-left cursor-pointer select-none whitespace-nowrap"
                     onClick={() => toggleSort('createdAt')}
                   >
                     저장일시{sortIndicator('createdAt')}
                   </th>
                   <th
-                    className="px-3 py-2 text-right cursor-pointer select-none"
+                    className="px-3 py-2 text-right cursor-pointer select-none whitespace-nowrap"
                     onClick={() => toggleSort('capacity')}
                   >
                     총 용량{sortIndicator('capacity')}
                   </th>
                   <th
-                    className="px-3 py-2 text-right cursor-pointer select-none"
+                    className="px-3 py-2 text-right cursor-pointer select-none whitespace-nowrap"
                     onClick={() => toggleSort('payback')}
                   >
                     회수기간{sortIndicator('payback')}
                   </th>
                   <th
-                    className="px-3 py-2 text-right cursor-pointer select-none"
+                    className="px-3 py-2 text-right cursor-pointer select-none whitespace-nowrap"
                     onClick={() => toggleSort('npv')}
                   >
                     20년 NPV{sortIndicator('npv')}
                   </th>
-                  <th className="px-3 py-2 text-right">20년 IRR</th>
-                  <th className="px-3 py-2 text-center">액션</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">20년 IRR</th>
+                  <th className="px-3 py-2 text-center whitespace-nowrap">액션</th>
                 </tr>
               </thead>
               <tbody>
@@ -465,17 +465,19 @@ export function ReportsList() {
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-xs text-zinc-600">
+                    <td className="px-3 py-2 text-xs text-zinc-600 whitespace-nowrap">
                       {new Date(r.createdAt).toLocaleString('ko-KR')}
                     </td>
-                    <td className="px-3 py-2 text-right">{fmtKW(r.totalCapacity_kW)}</td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
+                      {fmtKW(r.totalCapacity_kW)}
+                    </td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
                       {r.paybackYears == null ? '회수 불가' : fmtYears(r.paybackYears)}
                     </td>
-                    <td className="px-3 py-2 text-right">{fmtWon(r.npv20_원)}</td>
-                    <td className="px-3 py-2 text-right">{fmtPct(r.irr20)}</td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap">{fmtWon(r.npv20_원)}</td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap">{fmtPct(r.irr20)}</td>
                     <td className="px-3 py-2 text-center">
-                      <div className="flex items-center justify-center gap-1 flex-wrap">
+                      <div className="flex items-center justify-center gap-1 flex-nowrap">
                         <Button asChild variant="outline" size="xs">
                           <Link href={`/report?id=${r.id}`}>리포트 보기</Link>
                         </Button>
