@@ -2,6 +2,7 @@
 
 /**
  * Phase 8-2 — 리포트 비교 (최대 4개).
+ * Phase 10-C 강화 — 승자 요약 카드 + SVG 수평 막대 차트 추가.
  *
  * /reports/compare?ids=a,b,c → 각 리포트 로드 후 섹션별 지표를 나란히 표시.
  * 각 행에서 최우수값(초록)을 강조한다.
@@ -76,7 +77,18 @@ export function CompareView({ ids }: { ids: string[] }) {
 
       {errs.length > 0 && <div className="text-sm text-red-600">로드 실패: {errs.join(', ')}</div>}
 
-      {items.length > 0 && <CompareTable items={items} />}
+      {items.length > 0 && (
+        <>
+          {items.length >= 2 && <WinnerSummary items={items} />}
+          {items.length >= 2 && <CompareCharts items={items} />}
+          <div>
+            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
+              상세 비교
+            </div>
+            <CompareTable items={items} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -168,6 +180,200 @@ function bestIndex(values: (number | null)[], higherIsBetter: boolean): number |
 
 function worstIndex(values: (number | null)[], higherIsBetter: boolean): number | null {
   return bestIndex(values, !higherIsBetter);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 승자 요약 카드 (2건 이상 비교 시 표시)
+// ─────────────────────────────────────────────────────────────────
+
+interface WinnerCardInfo {
+  label: string;
+  winnerTitle: string | null;
+  valueStr: string;
+}
+
+function WinnerSummary({ items }: { items: Loaded[] }) {
+  const data = items.map(extractData);
+
+  function winner(
+    values: (number | null)[],
+    higherIsBetter: boolean,
+    fmt: (v: number | null) => string,
+  ): WinnerCardInfo | null {
+    const idx = bestIndex(values, higherIsBetter);
+    if (idx == null) return null;
+    return { label: '', winnerTitle: items[idx].title, valueStr: fmt(values[idx]) };
+  }
+
+  const cards: WinnerCardInfo[] = (
+    [
+      (() => {
+        const w = winner(
+          data.map((d) => d.npv[20]),
+          true,
+          fmtWon,
+        );
+        return w ? { ...w, label: '20년 NPV 최고' } : null;
+      })(),
+      (() => {
+        const w = winner(
+          data.map((d) => d.capex),
+          false,
+          fmtWon,
+        );
+        return w ? { ...w, label: 'CAPEX 최저' } : null;
+      })(),
+      (() => {
+        const w = winner(
+          data.map((d) => d.payback),
+          false,
+          (v) => (v == null ? '회수 불가' : fmtYears(v)),
+        );
+        return w ? { ...w, label: '회수기간 최단' } : null;
+      })(),
+      (() => {
+        const w = winner(
+          data.map((d) => d.irr[20]),
+          true,
+          fmtPct,
+        );
+        return w ? { ...w, label: '20년 IRR 최고' } : null;
+      })(),
+    ] as (WinnerCardInfo | null)[]
+  ).filter((c): c is WinnerCardInfo => c != null);
+
+  if (cards.length === 0) return null;
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:grid-cols-4">
+      {cards.map((card) => (
+        <div key={card.label} className="border border-zinc-200 rounded-lg px-3 py-2.5 bg-white">
+          <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-1">
+            {card.label}
+          </div>
+          <div
+            className="text-sm font-semibold text-zinc-800 truncate"
+            title={card.winnerTitle ?? undefined}
+          >
+            {card.winnerTitle ?? '(제목 없음)'}
+          </div>
+          <div className="text-xs text-green-700 font-medium mt-0.5">{card.valueStr}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SVG 수평 막대 비교 차트
+// ─────────────────────────────────────────────────────────────────
+
+function CompareBarChart({
+  items,
+  title,
+  values,
+  fmt,
+  higherIsBetter,
+}: {
+  items: Loaded[];
+  title: string;
+  values: (number | null)[];
+  fmt: (v: number | null) => string;
+  higherIsBetter: boolean;
+}) {
+  const numeric = values.map((v) => (v != null && Number.isFinite(v) ? v : null));
+  const valids = numeric.filter((v): v is number => v != null);
+  if (valids.length === 0) return null;
+
+  const maxAbs = Math.max(...valids.map(Math.abs));
+  const bestIdx = bestIndex(values, higherIsBetter);
+
+  const barPct = (v: number | null) => {
+    if (v == null || maxAbs === 0) return 0;
+    return (Math.abs(v) / maxAbs) * 100;
+  };
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-lg p-3">
+      <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide mb-3">
+        {title}
+      </div>
+      <div className="space-y-2">
+        {items.map((item, i) => {
+          const val = numeric[i];
+          const pct = barPct(val);
+          const isBest = bestIdx === i;
+          const isNeg = val != null && val < 0;
+          return (
+            <div key={item.id} className="flex items-center gap-2 text-xs">
+              <div
+                className="w-28 flex-shrink-0 truncate text-zinc-500 text-right pr-1"
+                title={item.title ?? undefined}
+              >
+                {item.title ?? '(제목 없음)'}
+              </div>
+              <div className="flex-1 h-4 bg-zinc-100 rounded overflow-hidden">
+                {val != null && (
+                  <div
+                    className={`h-full rounded ${
+                      isNeg ? 'bg-red-400' : isBest ? 'bg-green-500' : 'bg-blue-400'
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  />
+                )}
+              </div>
+              <div
+                className={`w-24 flex-shrink-0 text-right font-medium ${
+                  isBest ? 'text-green-700' : isNeg ? 'text-red-600' : 'text-zinc-700'
+                }`}
+              >
+                {val == null ? '-' : fmt(val)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CompareCharts({ items }: { items: Loaded[] }) {
+  const data = items.map(extractData);
+
+  const charts = [
+    {
+      title: '20년 NPV',
+      values: data.map((d) => d.npv[20]),
+      fmt: fmtWon,
+      higherIsBetter: true,
+    },
+    {
+      title: 'CAPEX',
+      values: data.map((d) => d.capex),
+      fmt: fmtWon,
+      higherIsBetter: false,
+    },
+    {
+      title: '회수기간',
+      values: data.map((d) => d.payback),
+      fmt: (v: number | null) => (v == null ? '회수 불가' : fmtYears(v)),
+      higherIsBetter: false,
+    },
+    {
+      title: 'LCOE (전기)',
+      values: data.map((d) => d.lcoe),
+      fmt: fmtWonPerKWh,
+      higherIsBetter: false,
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 print:grid-cols-2">
+      {charts.map((c) => (
+        <CompareBarChart key={c.title} items={items} {...c} />
+      ))}
+    </div>
+  );
 }
 
 function buildRows(items: Loaded[]): DataRow[] {
