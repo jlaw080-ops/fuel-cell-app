@@ -5,6 +5,7 @@
  *
  * - clientId 기반 조회
  * - 각 행: 리포트 보기 / 앱으로 불러오기 / 삭제
+ * - 모바일: 카드 레이아웃 / 데스크탑: 테이블 레이아웃
  */
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
@@ -160,7 +161,7 @@ export function ReportsList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <Link href="/" className="text-sm text-blue-600 underline">
           ← 입력 화면으로
         </Link>
@@ -187,7 +188,7 @@ export function ReportsList() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="제목 검색"
-            className="px-3 py-1.5 border border-zinc-300 rounded text-sm w-64"
+            className="px-3 py-1.5 border border-zinc-300 rounded text-sm w-full sm:w-64"
           />
           <label className="inline-flex items-center gap-1.5 text-sm text-zinc-700">
             <input
@@ -216,56 +217,21 @@ export function ReportsList() {
         <div className="border border-dashed border-zinc-300 rounded p-8 text-center text-sm text-zinc-500">
           저장된 리포트가 없습니다. 입력 화면에서 &quot;저장 + 리포트 보기&quot;를 눌러 저장하세요.
         </div>
+      ) : displayItems.length === 0 ? (
+        <div className="border border-dashed border-zinc-300 rounded p-8 text-center text-sm text-zinc-500">
+          조건에 맞는 리포트가 없습니다.
+        </div>
       ) : (
-        <table className="w-full text-sm border border-zinc-200">
-          <thead className="bg-zinc-50">
-            <tr>
-              <th className="px-2 py-2 w-8"></th>
-              <th
-                className="px-3 py-2 text-left cursor-pointer select-none"
-                onClick={() => toggleSort('title')}
-              >
-                제목{sortIndicator('title')}
-              </th>
-              <th
-                className="px-3 py-2 text-left cursor-pointer select-none"
-                onClick={() => toggleSort('createdAt')}
-              >
-                저장일시{sortIndicator('createdAt')}
-              </th>
-              <th
-                className="px-3 py-2 text-right cursor-pointer select-none"
-                onClick={() => toggleSort('capacity')}
-              >
-                총 용량{sortIndicator('capacity')}
-              </th>
-              <th
-                className="px-3 py-2 text-right cursor-pointer select-none"
-                onClick={() => toggleSort('payback')}
-              >
-                회수기간{sortIndicator('payback')}
-              </th>
-              <th
-                className="px-3 py-2 text-right cursor-pointer select-none"
-                onClick={() => toggleSort('npv')}
-              >
-                20년 NPV{sortIndicator('npv')}
-              </th>
-              <th className="px-3 py-2 text-right">20년 IRR</th>
-              <th className="px-3 py-2 text-center">액션</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayItems.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-sm text-zinc-500">
-                  조건에 맞는 리포트가 없습니다.
-                </td>
-              </tr>
-            )}
+        <>
+          {/* 모바일 카드 뷰 (md 미만) */}
+          <div className="md:hidden space-y-3">
             {displayItems.map((r) => (
-              <tr key={r.id} className="border-t border-zinc-200">
-                <td className="px-2 py-2 text-center">
+              <div
+                key={r.id}
+                className="border border-zinc-200 rounded-lg bg-white overflow-hidden"
+              >
+                {/* 카드 헤더 */}
+                <div className="px-4 pt-3 pb-2 flex items-start gap-2">
                   <input
                     type="checkbox"
                     checked={selected.has(r.id)}
@@ -277,86 +243,103 @@ export function ReportsList() {
                         return next;
                       });
                     }}
+                    className="mt-0.5 shrink-0"
                   />
-                </td>
-                <td className="px-3 py-2">
-                  {editingId === r.id ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="text"
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        maxLength={80}
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commitEdit();
-                          else if (e.key === 'Escape') cancelEdit();
-                        }}
-                        className="flex-1 px-2 py-1 border border-zinc-300 rounded text-xs"
-                      />
-                      <button
-                        type="button"
-                        onClick={commitEdit}
-                        disabled={pending}
-                        className="px-2 py-1 bg-zinc-900 text-white rounded text-xs disabled:opacity-50"
-                      >
-                        저장
-                      </button>
-                      <button
-                        type="button"
-                        onClick={cancelEdit}
-                        className="px-2 py-1 border border-zinc-300 rounded text-xs"
-                      >
-                        취소
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    {editingId === r.id ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          maxLength={80}
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitEdit();
+                            else if (e.key === 'Escape') cancelEdit();
+                          }}
+                          className="flex-1 px-2 py-1 border border-zinc-300 rounded text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={commitEdit}
+                          disabled={pending}
+                          className="px-2 py-1 bg-zinc-900 text-white rounded text-xs disabled:opacity-50 shrink-0"
+                        >
+                          저장
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="px-2 py-1 border border-zinc-300 rounded text-xs shrink-0"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    ) : (
                       <button
                         type="button"
                         onClick={() => startEdit(r)}
-                        className="text-left hover:bg-zinc-50 px-1 py-0.5 rounded flex-1"
+                        className="text-left text-sm font-medium w-full truncate hover:text-zinc-600"
                         title="클릭하여 이름 변경"
                       >
                         {r.title ?? <span className="text-zinc-400">(제목 없음)</span>}
                       </button>
-                      {r.isPublic && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-200">
-                          공유 중
-                        </span>
-                      )}
-                    </div>
+                    )}
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      {new Date(r.createdAt).toLocaleString('ko-KR')}
+                    </p>
+                  </div>
+                  {r.isPublic && (
+                    <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-200">
+                      공유 중
+                    </span>
                   )}
-                </td>
-                <td className="px-3 py-2 text-xs text-zinc-600">
-                  {new Date(r.createdAt).toLocaleString('ko-KR')}
-                </td>
-                <td className="px-3 py-2 text-right">{fmtKW(r.totalCapacity_kW)}</td>
-                <td className="px-3 py-2 text-right">
-                  {r.paybackYears == null ? '회수 불가' : fmtYears(r.paybackYears)}
-                </td>
-                <td className="px-3 py-2 text-right">{fmtWon(r.npv20_원)}</td>
-                <td className="px-3 py-2 text-right">{fmtPct(r.irr20)}</td>
-                <td className="px-3 py-2 text-center space-x-2 whitespace-nowrap">
+                </div>
+
+                {/* 지표 그리드 */}
+                <div className="px-4 py-2 grid grid-cols-2 gap-x-4 gap-y-1 border-t border-zinc-100 bg-zinc-50/60">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-500">총 용량</span>
+                    <span className="font-medium">{fmtKW(r.totalCapacity_kW)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-500">회수기간</span>
+                    <span className="font-medium">
+                      {r.paybackYears == null ? '회수 불가' : fmtYears(r.paybackYears)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-500">20년 NPV</span>
+                    <span className="font-medium">{fmtWon(r.npv20_원)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-500">20년 IRR</span>
+                    <span className="font-medium">{fmtPct(r.irr20)}</span>
+                  </div>
+                </div>
+
+                {/* 액션 버튼 */}
+                <div className="px-4 py-2.5 border-t border-zinc-100 flex flex-wrap gap-2">
                   <Link
                     href={`/report?id=${r.id}`}
-                    className="px-2 py-1 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
+                    className="px-2.5 py-1.5 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
                   >
                     리포트 보기
                   </Link>
                   <button
                     type="button"
                     onClick={() => onLoadIntoApp(r.id)}
-                    className="px-2 py-1 bg-zinc-900 text-white rounded text-xs"
+                    className="px-2.5 py-1.5 bg-zinc-900 text-white rounded text-xs"
                   >
-                    앱으로 불러오기
+                    불러오기
                   </button>
                   <button
                     type="button"
                     onClick={() => onTogglePublic(r.id, r.isPublic)}
                     disabled={pending}
                     className={
-                      'px-2 py-1 rounded text-xs border disabled:opacity-50 ' +
+                      'px-2.5 py-1.5 rounded text-xs border disabled:opacity-50 ' +
                       (r.isPublic
                         ? 'bg-blue-50 border-blue-300 text-blue-700'
                         : 'bg-white border-zinc-300 text-zinc-700')
@@ -368,7 +351,7 @@ export function ReportsList() {
                     <button
                       type="button"
                       onClick={() => onCopyLink(r.id)}
-                      className="px-2 py-1 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
+                      className="px-2.5 py-1.5 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
                     >
                       {copiedId === r.id ? '복사됨 ✓' : '링크 복사'}
                     </button>
@@ -377,15 +360,181 @@ export function ReportsList() {
                     type="button"
                     onClick={() => onDelete(r.id)}
                     disabled={pending}
-                    className="px-2 py-1 border border-red-300 text-red-600 rounded text-xs hover:bg-red-50 disabled:opacity-50"
+                    className="px-2.5 py-1.5 border border-red-300 text-red-600 rounded text-xs hover:bg-red-50 disabled:opacity-50"
                   >
                     삭제
                   </button>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+
+          {/* 데스크탑 테이블 뷰 (md 이상) */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm border border-zinc-200">
+              <thead className="bg-zinc-50">
+                <tr>
+                  <th className="px-2 py-2 w-8"></th>
+                  <th
+                    className="px-3 py-2 text-left cursor-pointer select-none"
+                    onClick={() => toggleSort('title')}
+                  >
+                    제목{sortIndicator('title')}
+                  </th>
+                  <th
+                    className="px-3 py-2 text-left cursor-pointer select-none"
+                    onClick={() => toggleSort('createdAt')}
+                  >
+                    저장일시{sortIndicator('createdAt')}
+                  </th>
+                  <th
+                    className="px-3 py-2 text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('capacity')}
+                  >
+                    총 용량{sortIndicator('capacity')}
+                  </th>
+                  <th
+                    className="px-3 py-2 text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('payback')}
+                  >
+                    회수기간{sortIndicator('payback')}
+                  </th>
+                  <th
+                    className="px-3 py-2 text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('npv')}
+                  >
+                    20년 NPV{sortIndicator('npv')}
+                  </th>
+                  <th className="px-3 py-2 text-right">20년 IRR</th>
+                  <th className="px-3 py-2 text-center">액션</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayItems.map((r) => (
+                  <tr key={r.id} className="border-t border-zinc-200">
+                    <td className="px-2 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(r.id)}
+                        onChange={(e) => {
+                          setSelected((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(r.id);
+                            else next.delete(r.id);
+                            return next;
+                          });
+                        }}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      {editingId === r.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            maxLength={80}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') commitEdit();
+                              else if (e.key === 'Escape') cancelEdit();
+                            }}
+                            className="flex-1 px-2 py-1 border border-zinc-300 rounded text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={commitEdit}
+                            disabled={pending}
+                            className="px-2 py-1 bg-zinc-900 text-white rounded text-xs disabled:opacity-50"
+                          >
+                            저장
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="px-2 py-1 border border-zinc-300 rounded text-xs"
+                          >
+                            취소
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(r)}
+                            className="text-left hover:bg-zinc-50 px-1 py-0.5 rounded flex-1"
+                            title="클릭하여 이름 변경"
+                          >
+                            {r.title ?? <span className="text-zinc-400">(제목 없음)</span>}
+                          </button>
+                          {r.isPublic && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-200">
+                              공유 중
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-zinc-600">
+                      {new Date(r.createdAt).toLocaleString('ko-KR')}
+                    </td>
+                    <td className="px-3 py-2 text-right">{fmtKW(r.totalCapacity_kW)}</td>
+                    <td className="px-3 py-2 text-right">
+                      {r.paybackYears == null ? '회수 불가' : fmtYears(r.paybackYears)}
+                    </td>
+                    <td className="px-3 py-2 text-right">{fmtWon(r.npv20_원)}</td>
+                    <td className="px-3 py-2 text-right">{fmtPct(r.irr20)}</td>
+                    <td className="px-3 py-2 text-center space-x-2 whitespace-nowrap">
+                      <Link
+                        href={`/report?id=${r.id}`}
+                        className="px-2 py-1 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
+                      >
+                        리포트 보기
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => onLoadIntoApp(r.id)}
+                        className="px-2 py-1 bg-zinc-900 text-white rounded text-xs"
+                      >
+                        앱으로 불러오기
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onTogglePublic(r.id, r.isPublic)}
+                        disabled={pending}
+                        className={
+                          'px-2 py-1 rounded text-xs border disabled:opacity-50 ' +
+                          (r.isPublic
+                            ? 'bg-blue-50 border-blue-300 text-blue-700'
+                            : 'bg-white border-zinc-300 text-zinc-700')
+                        }
+                      >
+                        {r.isPublic ? '공유 OFF' : '공유 ON'}
+                      </button>
+                      {r.isPublic && (
+                        <button
+                          type="button"
+                          onClick={() => onCopyLink(r.id)}
+                          className="px-2 py-1 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
+                        >
+                          {copiedId === r.id ? '복사됨 ✓' : '링크 복사'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onDelete(r.id)}
+                        disabled={pending}
+                        className="px-2 py-1 border border-red-300 text-red-600 rounded text-xs hover:bg-red-50 disabled:opacity-50"
+                      >
+                        삭제
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
