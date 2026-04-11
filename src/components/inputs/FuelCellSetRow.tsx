@@ -8,6 +8,8 @@
  */
 import { useMemo } from 'react';
 import type { FuelCellLibrary, FuelCellType } from '@/types/fuelCell';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export interface FuelCellSetState {
   set_id: string;
@@ -158,22 +160,24 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
         <span className="flex-1 text-sm text-zinc-600">
           {value.발전용량_kW != null ? `${value.발전용량_kW} kW` : '-'}
         </span>
-        <input
+        <Input
           aria-label="설치수량"
           type="number"
           min={1}
-          className="w-16 border border-zinc-300 rounded px-2 py-1 text-right text-sm"
+          className="w-16 text-right"
           value={value.설치수량 ?? ''}
           onChange={(e) => handleQty(e.target.value)}
           placeholder="수량"
         />
-        <button
+        <Button
           type="button"
           onClick={onRemove}
-          className="text-red-600 text-sm hover:underline shrink-0"
+          variant="destructive"
+          size="sm"
+          className="shrink-0"
         >
           삭제
-        </button>
+        </Button>
       </div>
 
       {(needsCapexOverride || needsMaintOverride) && (
@@ -184,12 +188,12 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
           {needsCapexOverride && (
             <label className="flex flex-wrap items-center gap-2">
               <span className="text-zinc-700 shrink-0">kW당 설치단가 (원)</span>
-              <input
+              <Input
                 type="number"
                 min={0}
                 value={value.kW당설치단가_override ?? ''}
                 onChange={(e) => handleCapexOverride(e.target.value)}
-                className="flex-1 min-w-0 border border-zinc-300 rounded px-2 py-1"
+                className="flex-1 min-w-0"
                 placeholder="예: 10000000"
               />
             </label>
@@ -197,12 +201,12 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
           {needsMaintOverride && (
             <label className="flex flex-wrap items-center gap-2">
               <span className="text-zinc-700 shrink-0">kW당 연간유지비 (원)</span>
-              <input
+              <Input
                 type="number"
                 min={0}
                 value={value.kW당연간유지비용_override ?? ''}
                 onChange={(e) => handleMaintOverride(e.target.value)}
-                className="flex-1 min-w-0 border border-zinc-300 rounded px-2 py-1"
+                className="flex-1 min-w-0"
                 placeholder="예: 2200000"
               />
             </label>

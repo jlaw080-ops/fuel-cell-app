@@ -19,6 +19,8 @@ import {
   type ReportListItem,
 } from '@/lib/actions/reports';
 import { fmtKW, fmtWon, fmtPct, fmtYears } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export function ReportsList() {
   const router = useRouter();
@@ -167,12 +169,11 @@ export function ReportsList() {
         </Link>
         <span className="flex-1" />
         {selected.size >= 2 && (
-          <Link
-            href={`/reports/compare?ids=${Array.from(selected).join(',')}`}
-            className="px-3 py-1.5 bg-zinc-900 text-white rounded text-xs"
-          >
-            선택한 {selected.size}건 비교
-          </Link>
+          <Button asChild size="xs">
+            <Link href={`/reports/compare?ids=${Array.from(selected).join(',')}`}>
+              선택한 {selected.size}건 비교
+            </Link>
+          </Button>
         )}
         <span className="text-xs text-zinc-500">
           {query || publicOnly
@@ -183,12 +184,12 @@ export function ReportsList() {
 
       {items.length > 0 && (
         <div className="flex items-center gap-3 flex-wrap">
-          <input
+          <Input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="제목 검색"
-            className="px-3 py-1.5 border border-zinc-300 rounded text-sm w-full sm:w-64"
+            className="w-full sm:w-64"
           />
           <label className="inline-flex items-center gap-1.5 text-sm text-zinc-700">
             <input
@@ -199,16 +200,17 @@ export function ReportsList() {
             공유 중만 보기
           </label>
           {(query || publicOnly) && (
-            <button
+            <Button
               type="button"
+              variant="link"
+              size="xs"
               onClick={() => {
                 setQuery('');
                 setPublicOnly(false);
               }}
-              className="text-xs text-blue-600 underline"
             >
               필터 초기화
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -248,7 +250,7 @@ export function ReportsList() {
                   <div className="flex-1 min-w-0">
                     {editingId === r.id ? (
                       <div className="flex items-center gap-1">
-                        <input
+                        <Input
                           type="text"
                           value={editingTitle}
                           onChange={(e) => setEditingTitle(e.target.value)}
@@ -258,23 +260,26 @@ export function ReportsList() {
                             if (e.key === 'Enter') commitEdit();
                             else if (e.key === 'Escape') cancelEdit();
                           }}
-                          className="flex-1 px-2 py-1 border border-zinc-300 rounded text-sm"
+                          className="flex-1 text-xs"
                         />
-                        <button
+                        <Button
                           type="button"
                           onClick={commitEdit}
                           disabled={pending}
-                          className="px-2 py-1 bg-zinc-900 text-white rounded text-xs disabled:opacity-50 shrink-0"
+                          size="xs"
+                          className="shrink-0"
                         >
                           저장
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
                           onClick={cancelEdit}
-                          className="px-2 py-1 border border-zinc-300 rounded text-xs shrink-0"
+                          variant="outline"
+                          size="xs"
+                          className="shrink-0"
                         >
                           취소
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <button
@@ -321,49 +326,43 @@ export function ReportsList() {
 
                 {/* 액션 버튼 */}
                 <div className="px-4 py-2.5 border-t border-zinc-100 flex flex-wrap gap-2">
-                  <Link
-                    href={`/report?id=${r.id}`}
-                    className="px-2.5 py-1.5 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
-                  >
-                    리포트 보기
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => onLoadIntoApp(r.id)}
-                    className="px-2.5 py-1.5 bg-zinc-900 text-white rounded text-xs"
-                  >
+                  <Button asChild variant="outline" size="xs">
+                    <Link href={`/report?id=${r.id}`}>리포트 보기</Link>
+                  </Button>
+                  <Button type="button" size="xs" onClick={() => onLoadIntoApp(r.id)}>
                     불러오기
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="xs"
                     onClick={() => onTogglePublic(r.id, r.isPublic)}
                     disabled={pending}
                     className={
-                      'px-2.5 py-1.5 rounded text-xs border disabled:opacity-50 ' +
-                      (r.isPublic
-                        ? 'bg-blue-50 border-blue-300 text-blue-700'
-                        : 'bg-white border-zinc-300 text-zinc-700')
+                      r.isPublic ? 'border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100' : ''
                     }
                   >
                     {r.isPublic ? '공유 OFF' : '공유 ON'}
-                  </button>
+                  </Button>
                   {r.isPublic && (
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="xs"
                       onClick={() => onCopyLink(r.id)}
-                      className="px-2.5 py-1.5 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
                     >
                       {copiedId === r.id ? '복사됨 ✓' : '링크 복사'}
-                    </button>
+                    </Button>
                   )}
-                  <button
+                  <Button
                     type="button"
+                    variant="destructive"
+                    size="xs"
                     onClick={() => onDelete(r.id)}
                     disabled={pending}
-                    className="px-2.5 py-1.5 border border-red-300 text-red-600 rounded text-xs hover:bg-red-50 disabled:opacity-50"
                   >
                     삭제
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
@@ -429,7 +428,7 @@ export function ReportsList() {
                     <td className="px-3 py-2">
                       {editingId === r.id ? (
                         <div className="flex items-center gap-1">
-                          <input
+                          <Input
                             type="text"
                             value={editingTitle}
                             onChange={(e) => setEditingTitle(e.target.value)}
@@ -439,23 +438,14 @@ export function ReportsList() {
                               if (e.key === 'Enter') commitEdit();
                               else if (e.key === 'Escape') cancelEdit();
                             }}
-                            className="flex-1 px-2 py-1 border border-zinc-300 rounded text-xs"
+                            className="flex-1 text-xs"
                           />
-                          <button
-                            type="button"
-                            onClick={commitEdit}
-                            disabled={pending}
-                            className="px-2 py-1 bg-zinc-900 text-white rounded text-xs disabled:opacity-50"
-                          >
+                          <Button type="button" onClick={commitEdit} disabled={pending} size="xs">
                             저장
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelEdit}
-                            className="px-2 py-1 border border-zinc-300 rounded text-xs"
-                          >
+                          </Button>
+                          <Button type="button" onClick={cancelEdit} variant="outline" size="xs">
                             취소
-                          </button>
+                          </Button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
@@ -484,50 +474,48 @@ export function ReportsList() {
                     </td>
                     <td className="px-3 py-2 text-right">{fmtWon(r.npv20_원)}</td>
                     <td className="px-3 py-2 text-right">{fmtPct(r.irr20)}</td>
-                    <td className="px-3 py-2 text-center space-x-2 whitespace-nowrap">
-                      <Link
-                        href={`/report?id=${r.id}`}
-                        className="px-2 py-1 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
-                      >
-                        리포트 보기
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => onLoadIntoApp(r.id)}
-                        className="px-2 py-1 bg-zinc-900 text-white rounded text-xs"
-                      >
-                        앱으로 불러오기
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onTogglePublic(r.id, r.isPublic)}
-                        disabled={pending}
-                        className={
-                          'px-2 py-1 rounded text-xs border disabled:opacity-50 ' +
-                          (r.isPublic
-                            ? 'bg-blue-50 border-blue-300 text-blue-700'
-                            : 'bg-white border-zinc-300 text-zinc-700')
-                        }
-                      >
-                        {r.isPublic ? '공유 OFF' : '공유 ON'}
-                      </button>
-                      {r.isPublic && (
-                        <button
+                    <td className="px-3 py-2 text-center">
+                      <div className="flex items-center justify-center gap-1 flex-wrap">
+                        <Button asChild variant="outline" size="xs">
+                          <Link href={`/report?id=${r.id}`}>리포트 보기</Link>
+                        </Button>
+                        <Button type="button" size="xs" onClick={() => onLoadIntoApp(r.id)}>
+                          앱으로 불러오기
+                        </Button>
+                        <Button
                           type="button"
-                          onClick={() => onCopyLink(r.id)}
-                          className="px-2 py-1 border border-zinc-300 rounded text-xs bg-white hover:bg-zinc-50"
+                          variant="outline"
+                          size="xs"
+                          onClick={() => onTogglePublic(r.id, r.isPublic)}
+                          disabled={pending}
+                          className={
+                            r.isPublic
+                              ? 'border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                              : ''
+                          }
                         >
-                          {copiedId === r.id ? '복사됨 ✓' : '링크 복사'}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => onDelete(r.id)}
-                        disabled={pending}
-                        className="px-2 py-1 border border-red-300 text-red-600 rounded text-xs hover:bg-red-50 disabled:opacity-50"
-                      >
-                        삭제
-                      </button>
+                          {r.isPublic ? '공유 OFF' : '공유 ON'}
+                        </Button>
+                        {r.isPublic && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            onClick={() => onCopyLink(r.id)}
+                          >
+                            {copiedId === r.id ? '복사됨 ✓' : '링크 복사'}
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="xs"
+                          onClick={() => onDelete(r.id)}
+                          disabled={pending}
+                        >
+                          삭제
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

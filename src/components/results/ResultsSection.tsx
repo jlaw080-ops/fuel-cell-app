@@ -18,6 +18,7 @@ import { calcEconomics, calcPaybackYears } from '@/lib/calc/economics/economics'
 import { buildReportSnapshot, saveReportDraftLocal } from '@/lib/report/buildSnapshot';
 import { saveReport } from '@/lib/actions/reports';
 import { getClientId } from '@/lib/session/clientId';
+import { Button } from '@/components/ui/button';
 import { EnergyProductionTable } from './EnergyProductionTable';
 import { RevenueTable } from './RevenueTable';
 import {
@@ -178,21 +179,12 @@ export function ResultsSection({
           <span className="text-sm text-zinc-700 flex-1">
             리포트를 A4 형식으로 보고 PDF로 저장할 수 있습니다.
           </span>
-          <button
-            type="button"
-            onClick={() => openReport(false)}
-            className="px-3 py-2 border border-zinc-300 rounded text-sm bg-white hover:bg-zinc-50"
-          >
+          <Button type="button" onClick={() => openReport(false)} variant="outline">
             미리보기
-          </button>
-          <button
-            type="button"
-            onClick={() => openReport(true)}
-            disabled={saving}
-            className="px-3 py-2 bg-zinc-900 text-white rounded text-sm disabled:opacity-50"
-          >
+          </Button>
+          <Button type="button" onClick={() => openReport(true)} disabled={saving}>
             {saving ? '저장 중...' : '저장 + 리포트 보기'}
-          </button>
+          </Button>
         </div>
       </div>
       {saveErr && <div className="text-sm text-red-600">{saveErr}</div>}
