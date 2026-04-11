@@ -145,6 +145,16 @@ export function ResultsSection({
     computed.econ.baseAnnualMaintenance ??
     (computed.econ.capex != null ? computed.econ.capex * settings.maintenanceRatio : null);
 
+  // 수익 합계값이 null인 경우 0으로 폴백 — 가스 타리프 라이브러리에 항목 누락 시 발생
+  // 민감도 분석은 0 기준으로라도 표시하며, 누락 항목은 경고 배너로 안내한다
+  const baseElecRevFallback = computed.revenue.합계.발전_월간총수익_원 ?? 0;
+  const baseHeatRevFallback = computed.revenue.합계.열생산_월간총수익_원 ?? 0;
+  const baseGasCostFallback = computed.revenue.합계.도시가스사용요금_원 ?? 0;
+  const hasPartialRevenue =
+    computed.revenue.합계.발전_월간총수익_원 == null ||
+    computed.revenue.합계.열생산_월간총수익_원 == null ||
+    computed.revenue.합계.도시가스사용요금_원 == null;
+
   return (
     <div className="space-y-8">
       <EconomicsSettingsPanel value={settings} onChange={setSettings} />
@@ -216,12 +226,33 @@ export function ResultsSection({
         />
       </section>
 
-      {computed.econ.capex != null &&
-      baseMaintFallback != null &&
-      computed.revenue.합계.발전_월간총수익_원 != null &&
-      computed.revenue.합계.열생산_월간총수익_원 != null &&
-      computed.revenue.합계.도시가스사용요금_원 != null ? (
+      {computed.econ.capex != null && baseMaintFallback != null ? (
         <>
+          {hasPartialRevenue && (
+            <section className="p-3 rounded border border-amber-200 bg-amber-50 text-sm text-amber-700">
+              <strong>수익 데이터 일부 누락</strong> — 요금 라이브러리에 항목이 없어 해당 수익을
+              0으로 대체해 민감도 계산합니다. 실제와 다를 수 있습니다.
+              {computed.revenue.합계.발전_월간총수익_원 == null && (
+                <span>
+                  {' '}
+                  · <strong>발전수익 (전기요금 데이터 없음)</strong>
+                </span>
+              )}
+              {computed.revenue.합계.열생산_월간총수익_원 == null && (
+                <span>
+                  {' '}
+                  · <strong>열수익 (가스요금 일반용 없음)</strong>
+                </span>
+              )}
+              {computed.revenue.합계.도시가스사용요금_원 == null && (
+                <span>
+                  {' '}
+                  · <strong>도시가스요금 (연료전지전용 요금 없음)</strong>
+                </span>
+              )}
+            </section>
+          )}
+
           <section className="space-y-3">
             <h3 className="text-lg font-semibold">민감도 분석</h3>
             <p className="text-sm text-zinc-500">
@@ -230,9 +261,9 @@ export function ResultsSection({
             <SensitivityTable
               input={{
                 capex: computed.econ.capex,
-                baseElecRev: computed.revenue.합계.발전_월간총수익_원,
-                baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
-                baseGasCost: computed.revenue.합계.도시가스사용요금_원,
+                baseElecRev: baseElecRevFallback,
+                baseHeatRev: baseHeatRevFallback,
+                baseGasCost: baseGasCostFallback,
                 baseMaint: baseMaintFallback,
                 maintenanceMode: settings.maintenanceMode,
                 lifetime: settings.lifetime,
@@ -248,9 +279,9 @@ export function ResultsSection({
             <TornadoChart
               input={{
                 capex: computed.econ.capex,
-                baseElecRev: computed.revenue.합계.발전_월간총수익_원,
-                baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
-                baseGasCost: computed.revenue.합계.도시가스사용요금_원,
+                baseElecRev: baseElecRevFallback,
+                baseHeatRev: baseHeatRevFallback,
+                baseGasCost: baseGasCostFallback,
                 baseMaint: baseMaintFallback,
                 maintenanceMode: settings.maintenanceMode,
                 lifetime: settings.lifetime,
@@ -267,9 +298,9 @@ export function ResultsSection({
             <InverseCalcPanel
               input={{
                 capex: computed.econ.capex,
-                baseElecRev: computed.revenue.합계.발전_월간총수익_원,
-                baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
-                baseGasCost: computed.revenue.합계.도시가스사용요금_원,
+                baseElecRev: baseElecRevFallback,
+                baseHeatRev: baseHeatRevFallback,
+                baseGasCost: baseGasCostFallback,
                 baseMaint: baseMaintFallback,
                 maintenanceMode: settings.maintenanceMode,
                 lifetime: settings.lifetime,
@@ -292,9 +323,9 @@ export function ResultsSection({
             <ProfitabilityMap
               input={{
                 capex: computed.econ.capex,
-                baseElecRev: computed.revenue.합계.발전_월간총수익_원,
-                baseHeatRev: computed.revenue.합계.열생산_월간총수익_원,
-                baseGasCost: computed.revenue.합계.도시가스사용요금_원,
+                baseElecRev: baseElecRevFallback,
+                baseHeatRev: baseHeatRevFallback,
+                baseGasCost: baseGasCostFallback,
                 baseMaint: baseMaintFallback,
                 maintenanceMode: settings.maintenanceMode,
                 lifetime: settings.lifetime,
@@ -322,23 +353,6 @@ export function ResultsSection({
               <li>
                 <strong>유지비 미입력</strong> — 유지비 데이터가 없습니다. 경제성 설정에서 유지비를
                 직접 입력해주세요.
-              </li>
-            )}
-            {computed.revenue.합계.발전_월간총수익_원 == null && (
-              <li>
-                <strong>발전수익 계산 불가</strong> — 전기요금 데이터 또는 발전량이 없습니다.
-              </li>
-            )}
-            {computed.revenue.합계.열생산_월간총수익_원 == null && (
-              <li>
-                <strong>열수익 계산 불가</strong> — 가스요금(일반용) 데이터 또는 열생산량이
-                없습니다.
-              </li>
-            )}
-            {computed.revenue.합계.도시가스사용요금_원 == null && (
-              <li>
-                <strong>가스요금 계산 불가</strong> — 가스요금(연료전지전용) 데이터 또는 도시가스
-                사용량이 없습니다.
               </li>
             )}
           </ul>
