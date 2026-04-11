@@ -1,15 +1,18 @@
 'use client';
 
 /**
- * Phase 5b — 리포트 본문 (A4 세로형).
+ * Phase 10 — 리포트 본문 (A4 세로형).
  *
- * 페이지 분할:
- *   1. 표지/요약
- *   2. 입력 요약
- *   3. 에너지 산출 (월별)
- *   4. 수익 (월별)
- *   5. 경제성 (연도별 + Summary)
- *   6. AI 검토 의견
+ * 섹션 구조:
+ *   표지     핵심 지표 카드 + 분석 조건 요약
+ *   1        입력 정보 (연료전지 세트 · 운전 프로파일)
+ *   2        에너지 생산량 / 사용량 (월별)
+ *   3        에너지 생산 수익 (월별)
+ *   4        경제성 분석 (연도별 현금흐름 + 기간별 요약)
+ *   5        시각화 (ReportCharts)
+ *   6        민감도 분석 — 토네이도 차트 + NPV/IRR/회수기간 테이블 (조건부)
+ *   7        수익성 지도 — CAPEX × 발전수익 히트맵 (조건부)
+ *   8        AI 검토 의견
  */
 import type { ReportSnapshot } from '@/lib/schemas/report';
 import { fmtWon, fmtWonPerKWh, fmtYears, fmtPct, fmtKW, fmtKWh, fmtInt } from '@/lib/format';
