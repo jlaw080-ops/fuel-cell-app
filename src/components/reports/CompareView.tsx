@@ -2,7 +2,7 @@
 
 /**
  * Phase 8-2 — 리포트 비교 (최대 4개).
- * Phase 10-C 강화 — 승자 요약 카드 + SVG 수평 막대 차트 추가.
+ * Phase 10-C 강화 — 승자 요약 카드 + SVG 수평 막대 차트 + 종합 순위 + NPV 추이 라인 차트.
  *
  * /reports/compare?ids=a,b,c → 각 리포트 로드 후 섹션별 지표를 나란히 표시.
  * 각 행에서 최우수값(초록)을 강조한다.
@@ -80,7 +80,9 @@ export function CompareView({ ids }: { ids: string[] }) {
       {items.length > 0 && (
         <>
           {items.length >= 2 && <WinnerSummary items={items} />}
+          {items.length >= 2 && <RankingSummary items={items} />}
           {items.length >= 2 && <CompareCharts items={items} />}
+          {items.length >= 2 && <NpvTrendChart items={items} />}
           <div>
             <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
               상세 비교
@@ -277,6 +279,231 @@ function WinnerSummary({ items }: { items: Loaded[] }) {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// 종합 순위 (다중 지표 가중 랭킹)
+// ─────────────────────────────────────────────────────────────────
+
+function rankValues(values: (number | null)[], higherIsBetter: boolean): (number | null)[] {
+  const indexed = values
+    .map((v, i) => ({ v, i }))
+    .filter(({ v }) => v != null && Number.isFinite(v as number));
+  indexed.sort((a, b) => (higherIsBetter ? b.v! - a.v! : a.v! - b.v!));
+  const rankMap: Record<number, number> = {};
+  indexed.forEach(({ i }, rank) => {
+    rankMap[i] = rank + 1;
+  });
+  return values.map((_, i) => rankMap[i] ?? null);
+}
+
+function RankingSummary({ items }: { items: Loaded[] }) {
+  const data = items.map(extractData);
+
+  const metrics: {
+    label: string;
+    values: (number | null)[];
+    higherIsBetter: boolean;
+    weight: number;
+  }[] = [
+    { label: 'NPV (20년)', values: data.map((d) => d.npv[20]), higherIsBetter: true, weight: 3 },
+    { label: 'IRR (20년)', values: data.map((d) => d.irr[20]), higherIsBetter: true, weight: 2 },
+    { label: '회수기간', values: data.map((d) => d.payback), higherIsBetter: false, weight: 2 },
+    { label: 'CAPEX', values: data.map((d) => d.capex), higherIsBetter: false, weight: 1 },
+  ];
+
+  const scores = items.map((_, i) => {
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const m of metrics) {
+      const ranks = rankValues(m.values, m.higherIsBetter);
+      if (ranks[i] != null) {
+        weightedSum += ranks[i]! * m.weight;
+        totalWeight += m.weight;
+      }
+    }
+    return totalWeight > 0 ? weightedSum / totalWeight : null;
+  });
+
+  const ranked = items
+    .map((item, i) => ({ item, score: scores[i], idx: i }))
+    .filter(({ score }) => score != null)
+    .sort((a, b) => a.score! - b.score!);
+
+  if (ranked.length === 0) return null;
+
+  const rankLabels = ['1위', '2위', '3위', '4위'];
+  const rankBg = [
+    'bg-amber-50 border-amber-200',
+    'bg-zinc-50 border-zinc-200',
+    'bg-zinc-50 border-zinc-200',
+    'bg-zinc-50 border-zinc-200',
+  ];
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-lg p-4">
+      <div className="flex items-baseline gap-2 mb-1">
+        <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide">
+          종합 순위
+        </div>
+        <div className="text-[10px] text-zinc-400">
+          NPV ×3 · IRR ×2 · 회수기간 ×2 · CAPEX ×1 가중 평균 랭킹 (낮을수록 우수)
+        </div>
+      </div>
+      <div className="space-y-2 mt-3">
+        {ranked.map(({ item, score }, rank) => (
+          <div
+            key={item.id}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${rankBg[rank] ?? 'bg-zinc-50 border-zinc-200'}`}
+          >
+            <span className="text-sm font-bold text-zinc-500 w-6 flex-shrink-0">
+              {rankLabels[rank]}
+            </span>
+            <span
+              className="flex-1 text-sm font-medium text-zinc-800 truncate"
+              title={item.title ?? undefined}
+            >
+              {item.title ?? '(제목 없음)'}
+            </span>
+            <span className="text-xs text-zinc-400">점수 {score?.toFixed(1)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 연도별 NPV 추이 라인 차트
+// ─────────────────────────────────────────────────────────────────
+
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+
+function fmtWonShort(v: number): string {
+  const uk = v / 1e8;
+  const sign = uk < 0 ? '-' : '';
+  return `${sign}${Math.abs(uk).toFixed(1)}억`;
+}
+
+function NpvTrendChart({ items }: { items: Loaded[] }) {
+  const data = items.map(extractData);
+  const years = [5, 10, 15, 20];
+
+  const series = data.map((d) => years.map((yr) => ({ yr, npv: d.npv[yr] ?? null })));
+
+  const allNpvs = series.flatMap((s) => s.map((p) => p.npv)).filter((v): v is number => v != null);
+  if (allNpvs.length === 0) return null;
+
+  const minV = Math.min(...allNpvs);
+  const maxV = Math.max(...allNpvs);
+  const span = maxV - minV || 1;
+
+  const W = 500;
+  const H = 160;
+  const PAD_L = 68;
+  const PAD_R = 12;
+  const PAD_T = 14;
+  const PAD_B = 26;
+  const plotW = W - PAD_L - PAD_R;
+  const plotH = H - PAD_T - PAD_B;
+
+  const xPos = (yr: number) => PAD_L + ((yr - 5) / 15) * plotW;
+  const yPos = (npv: number) => PAD_T + (1 - (npv - minV) / span) * plotH;
+
+  const yTicks = [minV, (minV + maxV) / 2, maxV];
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-lg p-3">
+      <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide mb-2">
+        연도별 NPV 추이
+      </div>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
+        {/* grid */}
+        {years.map((yr) => (
+          <line
+            key={yr}
+            x1={xPos(yr)}
+            y1={PAD_T}
+            x2={xPos(yr)}
+            y2={PAD_T + plotH}
+            stroke="#e4e4e7"
+            strokeWidth={1}
+          />
+        ))}
+        {/* zero baseline */}
+        {minV < 0 && maxV > 0 && (
+          <line
+            x1={PAD_L}
+            y1={yPos(0)}
+            x2={PAD_L + plotW}
+            y2={yPos(0)}
+            stroke="#a1a1aa"
+            strokeWidth={1}
+            strokeDasharray="4,3"
+          />
+        )}
+        {/* series lines + dots */}
+        {series.map((pts, i) => {
+          const valid = pts.filter((p) => p.npv != null);
+          if (valid.length < 2) return null;
+          const d = valid
+            .map((p, j) => `${j === 0 ? 'M' : 'L'}${xPos(p.yr)},${yPos(p.npv!)}`)
+            .join(' ');
+          return (
+            <g key={i}>
+              <path
+                d={d}
+                fill="none"
+                stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                strokeWidth={2}
+              />
+              {valid.map((p) => (
+                <circle
+                  key={p.yr}
+                  cx={xPos(p.yr)}
+                  cy={yPos(p.npv!)}
+                  r={3.5}
+                  fill={CHART_COLORS[i % CHART_COLORS.length]}
+                />
+              ))}
+            </g>
+          );
+        })}
+        {/* x-axis labels */}
+        {years.map((yr) => (
+          <text key={yr} x={xPos(yr)} y={H - 8} textAnchor="middle" fontSize={9} fill="#71717a">
+            {yr}년
+          </text>
+        ))}
+        {/* y-axis labels */}
+        {yTicks.map((v, i) => (
+          <text
+            key={i}
+            x={PAD_L - 5}
+            y={yPos(v) + 3.5}
+            textAnchor="end"
+            fontSize={9}
+            fill="#71717a"
+          >
+            {fmtWonShort(v)}
+          </text>
+        ))}
+      </svg>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+        {items.map((item, i) => (
+          <div key={item.id} className="flex items-center gap-1.5 text-[11px] text-zinc-600">
+            <span
+              className="inline-block w-4 h-0.5 flex-shrink-0 rounded"
+              style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+            />
+            <span className="truncate max-w-[120px]" title={item.title ?? undefined}>
+              {item.title ?? '(제목 없음)'}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
 // SVG 수평 막대 비교 차트
 // ─────────────────────────────────────────────────────────────────
 
@@ -356,6 +583,12 @@ function CompareCharts({ items }: { items: Loaded[] }) {
       title: '20년 NPV',
       values: data.map((d) => d.npv[20]),
       fmt: fmtWon,
+      higherIsBetter: true,
+    },
+    {
+      title: '20년 IRR',
+      values: data.map((d) => d.irr[20]),
+      fmt: fmtPct,
       higherIsBetter: true,
     },
     {
