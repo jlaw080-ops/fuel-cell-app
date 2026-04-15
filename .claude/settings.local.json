@@ -48,7 +48,17 @@
       "Bash(npx vercel:*)",
       "Bash(gh repo:*)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(echo \"exit:$?\")",
+      "Bash(npx --yes tsc --noEmit)",
+      "Bash(tsc --noEmit)",
+      "Bash(npx shadcn@latest add select --yes)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\jlaw8\\dev\\fuel-cell-app",
+      "C:\\Users\\jlaw8\\Vault_jlaw80\\02_Areas\\05_APP개발&유지관리\\연료전지경제성평가APP_Harness"
     ]
   }
 }

@@ -9,7 +9,7 @@ interface PageProps {
 }
 
 export default async function Home({ searchParams }: PageProps) {
-  const libraries = loadAllLibraries();
+  const libraries = await loadAllLibraries();
   const { reportId } = await searchParams;
   const user = await getCurrentUser();
 
