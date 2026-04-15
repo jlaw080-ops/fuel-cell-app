@@ -8,6 +8,7 @@ const elecTariff: z.infer<typeof electricityTariffLibrarySchema> = {
   요금제: '일반용(을) 고압A 선택Ⅱ',
   기본요금_원per_kW: 8320,
   단위: '원/kWh',
+  is_active: true,
   데이터: [
     { 월: 1, 경부하: 94.3, 중간부하: 140.4, 최대부하: 197.9 },
     { 월: 2, 경부하: 94.3, 중간부하: 140.4, 최대부하: 197.9 },

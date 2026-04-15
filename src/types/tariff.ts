@@ -11,6 +11,7 @@ export interface ElectricityTariffLibrary {
   기본요금_원per_kW: number;
   단위: string;
   데이터: ElectricityTariffRow[];
+  is_active: boolean;
 }
 
 /** 가스요금라이브러리.json */

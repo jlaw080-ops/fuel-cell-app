@@ -68,27 +68,29 @@ const operationRows = [
   },
 ];
 
-const electricityPlan = {
-  id: 1,
-  plan_name: '일반용(을) 고압A 선택Ⅱ',
-  base_charge_per_kw: 8320,
-  unit: '원/kWh',
-  is_active: true,
-  electricity_tariff_monthly: [
-    { month: 1, off_peak: 94.3, mid_peak: 140.4, on_peak: 197.9 },
-    { month: 2, off_peak: 94.3, mid_peak: 140.4, on_peak: 197.9 },
-    { month: 3, off_peak: 87.3, mid_peak: 109.8, on_peak: 140.5 },
-    { month: 4, off_peak: 87.3, mid_peak: 109.8, on_peak: 140.5 },
-    { month: 5, off_peak: 87.3, mid_peak: 109.8, on_peak: 140.5 },
-    { month: 6, off_peak: 87.3, mid_peak: 140.2, on_peak: 222.3 },
-    { month: 7, off_peak: 87.3, mid_peak: 140.2, on_peak: 222.3 },
-    { month: 8, off_peak: 87.3, mid_peak: 140.2, on_peak: 222.3 },
-    { month: 9, off_peak: 87.3, mid_peak: 109.8, on_peak: 140.5 },
-    { month: 10, off_peak: 87.3, mid_peak: 109.8, on_peak: 140.5 },
-    { month: 11, off_peak: 94.3, mid_peak: 140.4, on_peak: 197.9 },
-    { month: 12, off_peak: 94.3, mid_peak: 140.4, on_peak: 197.9 },
-  ],
-};
+const electricityPlanRows = [
+  {
+    id: 1,
+    plan_name: '일반용(을) 고압A 선택Ⅱ',
+    base_charge_per_kw: 8320,
+    unit: '원/kWh',
+    is_active: true,
+    electricity_tariff_monthly: [
+      { month: 1, off_peak: 94.3, mid_peak: 140.4, on_peak: 197.9 },
+      { month: 2, off_peak: 94.3, mid_peak: 140.4, on_peak: 197.9 },
+      { month: 3, off_peak: 87.3, mid_peak: 109.8, on_peak: 140.5 },
+      { month: 4, off_peak: 87.3, mid_peak: 109.8, on_peak: 140.5 },
+      { month: 5, off_peak: 87.3, mid_peak: 109.8, on_peak: 140.5 },
+      { month: 6, off_peak: 87.3, mid_peak: 140.2, on_peak: 222.3 },
+      { month: 7, off_peak: 87.3, mid_peak: 140.2, on_peak: 222.3 },
+      { month: 8, off_peak: 87.3, mid_peak: 140.2, on_peak: 222.3 },
+      { month: 9, off_peak: 87.3, mid_peak: 109.8, on_peak: 140.5 },
+      { month: 10, off_peak: 87.3, mid_peak: 109.8, on_peak: 140.5 },
+      { month: 11, off_peak: 94.3, mid_peak: 140.4, on_peak: 197.9 },
+      { month: 12, off_peak: 94.3, mid_peak: 140.4, on_peak: 197.9 },
+    ],
+  },
+];
 
 const gasRows = [
   { id: 1, name: '연료전지전용', unit_price_per_kwh: 4.01154 },
@@ -115,10 +117,7 @@ beforeEach(() => {
     if (table === 'electricity_tariff_plans') {
       return {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: electricityPlan, error: null }),
+        order: vi.fn().mockResolvedValue({ data: electricityPlanRows, error: null }),
       } as unknown as ReturnType<typeof supabaseServer.from>;
     }
     if (table === 'gas_tariffs') {
@@ -152,13 +151,16 @@ describe('library loaders', () => {
     expect(lib['365일가동']?.연간가동일).toBe(365);
   });
 
-  it('electricity tariff has 12 monthly rows with 1..12 months', async () => {
-    const { loadElectricityTariff } = await import('../loadLibraries');
-    const lib = await loadElectricityTariff();
-    expect(lib.데이터).toHaveLength(12);
-    const months = lib.데이터.map((r) => r.월).sort((a, b) => a - b);
+  it('electricity tariffs returns array; first plan has 12 monthly rows', async () => {
+    const { loadElectricityTariffs } = await import('../loadLibraries');
+    const plans = await loadElectricityTariffs();
+    expect(plans.length).toBeGreaterThan(0);
+    const first = plans[0]!;
+    expect(first.데이터).toHaveLength(12);
+    const months = first.데이터.map((r) => r.월).sort((a, b) => a - b);
     expect(months).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    expect(lib.기본요금_원per_kW).toBeGreaterThan(0);
+    expect(first.기본요금_원per_kW).toBeGreaterThan(0);
+    expect(typeof first.is_active).toBe('boolean');
   });
 
   it('gas tariff library is non-empty array', async () => {
@@ -168,12 +170,13 @@ describe('library loaders', () => {
     expect(lib[0]?.단가_원per_kW).toBeGreaterThan(0);
   });
 
-  it('loadAllLibraries returns all 4 libraries', async () => {
+  it('loadAllLibraries returns all 4 libraries; electricity is an array', async () => {
     const { loadAllLibraries } = await import('../loadLibraries');
     const all: AllLibraries = await loadAllLibraries();
     expect(all.fuelCell).toBeDefined();
     expect(all.operation).toBeDefined();
-    expect(all.electricity).toBeDefined();
+    expect(Array.isArray(all.electricity)).toBe(true);
+    expect(all.electricity.length).toBeGreaterThan(0);
     expect(all.gas).toBeDefined();
   });
 });

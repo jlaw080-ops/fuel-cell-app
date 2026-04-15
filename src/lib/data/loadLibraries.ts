@@ -55,39 +55,37 @@ export async function loadOperationLibrary(): Promise<OperationLibrary> {
   return operationLibrarySchema.parse(record) as OperationLibrary;
 }
 
-export async function loadElectricityTariff(): Promise<ElectricityTariffLibrary> {
-  const { data: plans, error: planError } = await supabaseServer
+export async function loadElectricityTariffs(): Promise<ElectricityTariffLibrary[]> {
+  const { data, error } = await supabaseServer
     .from('electricity_tariff_plans')
     .select('*, electricity_tariff_monthly(*)')
-    .eq('is_active', true)
-    .order('id')
-    .limit(1)
-    .single();
+    .order('id');
 
-  if (planError) throw new Error(`electricity_tariff_plans 로드 실패: ${planError.message}`);
+  if (error) throw new Error(`electricity_tariff_plans 로드 실패: ${error.message}`);
 
-  const monthly = (
-    plans.electricity_tariff_monthly as {
-      month: number;
-      off_peak: number;
-      mid_peak: number;
-      on_peak: number;
-    }[]
-  ).sort((a, b) => a.month - b.month);
+  return (data ?? []).map((plan) => {
+    const monthly = (
+      plan.electricity_tariff_monthly as {
+        month: number;
+        off_peak: number;
+        mid_peak: number;
+        on_peak: number;
+      }[]
+    ).sort((a, b) => a.month - b.month);
 
-  const mapped = {
-    요금제: plans.plan_name,
-    기본요금_원per_kW: plans.base_charge_per_kw,
-    단위: plans.unit,
-    데이터: monthly.map((r) => ({
-      월: r.month,
-      경부하: r.off_peak,
-      중간부하: r.mid_peak,
-      최대부하: r.on_peak,
-    })),
-  };
-
-  return electricityTariffLibrarySchema.parse(mapped);
+    return electricityTariffLibrarySchema.parse({
+      요금제: plan.plan_name,
+      기본요금_원per_kW: plan.base_charge_per_kw,
+      단위: plan.unit,
+      is_active: plan.is_active,
+      데이터: monthly.map((r) => ({
+        월: r.month,
+        경부하: r.off_peak,
+        중간부하: r.mid_peak,
+        최대부하: r.on_peak,
+      })),
+    });
+  });
 }
 
 export async function loadGasTariff(): Promise<GasTariffLibrary> {
@@ -106,7 +104,8 @@ export async function loadGasTariff(): Promise<GasTariffLibrary> {
 export interface AllLibraries {
   fuelCell: FuelCellLibrary;
   operation: OperationLibrary;
-  electricity: ElectricityTariffLibrary;
+  /** 전기요금 플랜 전체 목록. is_active=true인 항목이 기본 선택값. */
+  electricity: ElectricityTariffLibrary[];
   gas: GasTariffLibrary;
 }
 
@@ -114,7 +113,7 @@ export async function loadAllLibraries(): Promise<AllLibraries> {
   const [fuelCell, operation, electricity, gas] = await Promise.all([
     loadFuelCellLibrary(),
     loadOperationLibrary(),
-    loadElectricityTariff(),
+    loadElectricityTariffs(),
     loadGasTariff(),
   ]);
 

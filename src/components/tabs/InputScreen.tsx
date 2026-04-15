@@ -18,6 +18,13 @@ import { saveFuelCellInput, saveOperationInput, loadLatestInputs } from '@/lib/a
 import { loadReport } from '@/lib/actions/reports';
 import type { EconomicsSettings } from '@/components/results/EconomicsSettingsPanel';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { FuelCellSetList } from '@/components/inputs/FuelCellSetList';
 import type { FuelCellSetState } from '@/components/inputs/FuelCellSetRow';
 import {
@@ -34,7 +41,18 @@ interface Props {
 type Msg = { kind: 'ok' | 'err'; text: string } | null;
 
 export function InputScreen({ libraries, reportId = null }: Props) {
-  const { fuelCell: fuelCellLibrary, operation: operationLibrary } = libraries;
+  const {
+    fuelCell: fuelCellLibrary,
+    operation: operationLibrary,
+    electricity: electricityPlans,
+  } = libraries;
+
+  // 기본 선택: is_active=true인 첫 번째 플랜, 없으면 0
+  const defaultElecIndex = Math.max(
+    electricityPlans.findIndex((p) => p.is_active),
+    0,
+  );
+  const [selectedElecIndex, setSelectedElecIndex] = useState(defaultElecIndex);
   const router = useRouter();
   const [clientId, setClientId] = useState<string>('');
   const [resetKey, setResetKey] = useState(0);
@@ -260,14 +278,39 @@ export function InputScreen({ libraries, reportId = null }: Props) {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">결과</h2>
+        <header className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xl font-semibold">결과</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-zinc-600 whitespace-nowrap">전기요금 기준</span>
+            <Select
+              value={String(selectedElecIndex)}
+              onValueChange={(v) => setSelectedElecIndex(Number(v))}
+              disabled={electricityPlans.length <= 1}
+            >
+              <SelectTrigger className="w-[260px] text-sm">
+                <SelectValue placeholder="요금제 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {electricityPlans.map((plan, i) => (
+                  <SelectItem key={i} value={String(i)}>
+                    {plan.요금제}
+                    {plan.is_active ? ' ★' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </header>
         <ResultsSection
           key={`results-${resetKey}`}
           fuelCellSets={fuelCellSets}
           fuelCellTotal={fuelCellTotal}
           operation={operationState}
           operationValid={operationValid}
-          libraries={libraries}
+          libraries={{
+            ...libraries,
+            electricity: electricityPlans[selectedElecIndex] ?? electricityPlans[0],
+          }}
           initialSettings={initialSettings}
           initialTitle={initialTitle}
         />

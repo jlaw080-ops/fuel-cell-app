@@ -60,6 +60,7 @@ export const electricityTariffLibrarySchema = z.object({
   기본요금_원per_kW: z.number(),
   단위: z.string(),
   데이터: z.array(electricityTariffRowSchema).length(12),
+  is_active: z.boolean(),
 });
 
 // ============================================================
