@@ -437,12 +437,12 @@ export function ResultsSection({
                 profitabilityMapInput={sharedInput}
               />
 
-              <section className="space-y-3">
-                <h3 className="text-base font-semibold text-[#b8b3b0]">
+              <div className="border border-zinc-200 rounded-xl p-5 bg-white space-y-3">
+                <h3 className="text-base font-semibold text-zinc-600">
                   변수별 영향 — 토네이도 차트
                 </h3>
                 <TornadoChart input={sharedInput} />
-              </section>
+              </div>
 
               <section className="space-y-3">
                 <h3 className="text-base font-semibold text-[#b8b3b0]">목표 역산</h3>
