@@ -11,6 +11,7 @@ import { calcEnergyRevenue } from '@/lib/calc/revenue/revenue';
 import { calcEconomics, calcPaybackYears } from '@/lib/calc/economics/economics';
 import { buildReportSnapshot, saveReportDraftLocal } from '@/lib/report/buildSnapshot';
 import { saveReport } from '@/lib/actions/reports';
+import { generateAiReview } from '@/lib/gemini/review';
 import { getClientId } from '@/lib/session/clientId';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,12 +26,13 @@ import { ProfitabilityMap } from './ProfitabilityMap';
 import { InsightSummary } from './InsightSummary';
 import { ReportCharts } from '@/components/charts/ReportCharts';
 
-type ResultTab = 'basic' | 'analysis';
+type ResultTab = 'basic' | 'analysis' | 'ai';
 
 function TabBar({ active, onChange }: { active: ResultTab; onChange: (t: ResultTab) => void }) {
   const tabs: { key: ResultTab; label: string }[] = [
     { key: 'basic', label: '기본 결과' },
     { key: 'analysis', label: '투자 분석' },
+    { key: 'ai', label: 'AI 분석' },
   ];
   return (
     <div className="flex border-b border-[#3d3a39]">
@@ -148,6 +150,9 @@ export function ResultsSection({
   const [saving, startSave] = useTransition();
   const [saveErr, setSaveErr] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ResultTab>('basic');
+  const [aiReview, setAiReview] = useState<string | null>(null);
+  const [aiSkipped, setAiSkipped] = useState(false);
+  const [aiLoading, startAi] = useTransition();
 
   const computed = useMemo(() => {
     if (!operationValid || !operation || fuelCellSets.length === 0 || fuelCellTotal <= 0) {
@@ -216,6 +221,28 @@ export function ResultsSection({
         router.push(`/report?id=${res.id}`);
       } else {
         setSaveErr(res.error);
+      }
+    });
+  }
+
+  function onGenerateAi() {
+    if (!computed || !operation) return;
+    const snapshot = buildReportSnapshot({
+      fuelCell: { sets: fuelCellSets, 총설치용량_kW: fuelCellTotal },
+      operation,
+      settings,
+      production: computed.production,
+      revenue: computed.revenue,
+      economics: computed.econ,
+      paybackYears: computed.payback,
+    });
+    setAiSkipped(false);
+    startAi(async () => {
+      const res = await generateAiReview(snapshot);
+      if (res.ok) {
+        setAiReview(res.review);
+      } else {
+        setAiSkipped(true);
       }
     });
   }
@@ -487,6 +514,45 @@ export function ResultsSection({
               </ul>
             </section>
           )}
+        </div>
+      )}
+
+      {/* ── 탭 3: AI 분석 ── */}
+      {activeTab === 'ai' && (
+        <div className="space-y-4">
+          <div className="border border-[#3d3a39] rounded-xl p-5 bg-[#1a1a1a] space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-[#f2f2f2]">AI 경제성 검토 의견</h3>
+              <Button type="button" onClick={onGenerateAi} disabled={aiLoading} size="sm">
+                {aiLoading ? 'AI 분석 중...' : aiReview ? 'AI 분석 재생성' : 'AI 분석 생성'}
+              </Button>
+            </div>
+
+            {aiLoading && (
+              <p className="text-sm text-[#8b949e] animate-pulse">
+                AI 검토 의견을 생성 중입니다...
+              </p>
+            )}
+
+            {!aiLoading && aiSkipped && (
+              <div className="p-4 rounded border border-amber-200 bg-amber-50 text-sm text-amber-700">
+                AI 검토 기능을 사용할 수 없습니다. (GEMINI_API_KEY 미설정 또는 API 오류)
+              </div>
+            )}
+
+            {!aiLoading && aiReview && (
+              <div className="text-sm text-[#e2e2e2] leading-relaxed whitespace-pre-wrap">
+                {aiReview}
+              </div>
+            )}
+
+            {!aiLoading && !aiReview && !aiSkipped && (
+              <p className="text-sm text-[#8b949e]">
+                &ldquo;AI 분석 생성&rdquo; 버튼을 클릭하면 현재 분석 결과를 기반으로 AI 검토 의견을
+                생성합니다. (Gemini AI 사용)
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
