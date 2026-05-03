@@ -195,39 +195,47 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
           </Button>
         </div>
 
-        {(needsCapexOverride || needsMaintOverride) && (
-          <div className="mt-1 flex flex-col gap-2 bg-amber-50 border border-amber-200 rounded p-2 text-xs">
-            <div className="text-amber-800">
-              이 모델은 라이브러리 단가가 없습니다. 직접 입력하세요.
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateRows: needsCapexOverride || needsMaintOverride ? '1fr' : '0fr',
+            transition: 'grid-template-rows 250ms ease',
+          }}
+        >
+          <div className="overflow-hidden">
+            <div className="mt-1 flex flex-col gap-2 bg-amber-50 border border-amber-200 rounded p-2 text-xs">
+              <div className="text-amber-800">
+                이 모델은 라이브러리 단가가 없습니다. 직접 입력하세요.
+              </div>
+              {needsCapexOverride && (
+                <label className="flex flex-wrap items-center gap-2">
+                  <span className="text-zinc-700 shrink-0">kW당 설치단가 (원)</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={value.kW당설치단가_override ?? ''}
+                    onChange={(e) => handleCapexOverride(e.target.value)}
+                    className="flex-1 min-w-0"
+                    placeholder="예: 10000000"
+                  />
+                </label>
+              )}
+              {needsMaintOverride && (
+                <label className="flex flex-wrap items-center gap-2">
+                  <span className="text-zinc-700 shrink-0">kW당 연간유지비 (원)</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={value.kW당연간유지비용_override ?? ''}
+                    onChange={(e) => handleMaintOverride(e.target.value)}
+                    className="flex-1 min-w-0"
+                    placeholder="예: 2200000"
+                  />
+                </label>
+              )}
             </div>
-            {needsCapexOverride && (
-              <label className="flex flex-wrap items-center gap-2">
-                <span className="text-zinc-700 shrink-0">kW당 설치단가 (원)</span>
-                <Input
-                  type="number"
-                  min={0}
-                  value={value.kW당설치단가_override ?? ''}
-                  onChange={(e) => handleCapexOverride(e.target.value)}
-                  className="flex-1 min-w-0"
-                  placeholder="예: 10000000"
-                />
-              </label>
-            )}
-            {needsMaintOverride && (
-              <label className="flex flex-wrap items-center gap-2">
-                <span className="text-zinc-700 shrink-0">kW당 연간유지비 (원)</span>
-                <Input
-                  type="number"
-                  min={0}
-                  value={value.kW당연간유지비용_override ?? ''}
-                  onChange={(e) => handleMaintOverride(e.target.value)}
-                  className="flex-1 min-w-0"
-                  placeholder="예: 2200000"
-                />
-              </label>
-            )}
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

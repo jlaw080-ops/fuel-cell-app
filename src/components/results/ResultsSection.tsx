@@ -49,7 +49,17 @@ function CollapsibleSection({
         <span className="text-sm font-semibold text-zinc-800">{title}</span>
         <span className="text-zinc-400 text-xs">{open ? '▲ 접기' : '▼ 펼치기'}</span>
       </button>
-      {open && <div className="px-4 py-4 space-y-6">{children}</div>}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: open ? '1fr' : '0fr',
+          transition: 'grid-template-rows 250ms ease',
+        }}
+      >
+        <div className="overflow-hidden">
+          <div className="px-4 py-4 space-y-6">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }
