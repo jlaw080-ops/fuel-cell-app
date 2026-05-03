@@ -32,6 +32,7 @@ import { SensitivityTable } from './SensitivityTable';
 import { TornadoChart } from './TornadoChart';
 import { InverseCalcPanel } from './InverseCalcPanel';
 import { ProfitabilityMap } from './ProfitabilityMap';
+import { InsightSummary } from './InsightSummary';
 import { ReportCharts } from '@/components/charts/ReportCharts';
 
 interface Props {
@@ -306,6 +307,36 @@ export function ResultsSection({
               }}
               currentIrr20={computed.econ.summary.데이터.find((r) => r.기간_년 === 20)?.IRR ?? null}
               currentPayback={computed.payback}
+            />
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-lg font-semibold">투자 진단</h3>
+            <InsightSummary
+              npv={
+                computed.econ.summary.데이터.find((r) => r.기간_년 === settings.lifetime)?.NPV_원 ??
+                null
+              }
+              irr={
+                computed.econ.summary.데이터.find((r) => r.기간_년 === settings.lifetime)?.IRR ??
+                null
+              }
+              payback={computed.payback}
+              lifetime={settings.lifetime}
+              discountRate={settings.discountRate}
+              input={{
+                capex: computed.econ.capex,
+                baseElecRev: baseElecRevFallback,
+                baseHeatRev: baseHeatRevFallback,
+                baseGasCost: baseGasCostFallback,
+                baseMaint: baseMaintFallback,
+                maintenanceMode: settings.maintenanceMode,
+                lifetime: settings.lifetime,
+                discountRate: settings.discountRate,
+                electricityEscalation: settings.electricityEscalation,
+                gasEscalation: settings.gasEscalation,
+                maintenanceEscalation: settings.maintenanceEscalation,
+              }}
             />
           </section>
 

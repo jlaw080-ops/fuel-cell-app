@@ -125,6 +125,39 @@ export function ProfitabilityMap({ input }: Props) {
   const vMin = Math.min(...allValues);
   const vMax = Math.max(...allValues);
 
+  // NPV=0 경계 선분 (NPV 지표일 때만)
+  const boundarySegments = useMemo(() => {
+    if (metric !== 'npv') return [];
+    const segs: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+    const rows = cells.length;
+    const cols = cells[0]?.length ?? 0;
+    // 수직 경계 (좌우 인접 셀 부호 변화)
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols - 1; c++) {
+        const n1 = cells[r][c].npv;
+        const n2 = cells[r][c + 1].npv;
+        if (n1 === null || n2 === null) continue;
+        if (n1 >= 0 !== n2 >= 0) {
+          const x = (c + 1) * CELL_W;
+          segs.push({ x1: x, y1: r * CELL_H, x2: x, y2: (r + 1) * CELL_H });
+        }
+      }
+    }
+    // 수평 경계 (상하 인접 셀 부호 변화)
+    for (let r = 0; r < rows - 1; r++) {
+      for (let c = 0; c < cols; c++) {
+        const n1 = cells[r][c].npv;
+        const n2 = cells[r + 1][c].npv;
+        if (n1 === null || n2 === null) continue;
+        if (n1 >= 0 !== n2 >= 0) {
+          const y = (r + 1) * CELL_H;
+          segs.push({ x1: c * CELL_W, y1: y, x2: (c + 1) * CELL_W, y2: y });
+        }
+      }
+    }
+    return segs;
+  }, [cells, metric]);
+
   // 기준 셀 (capexFactor=1.0, elecFactor=1.0)
   // elecFactors는 내림차순이므로 기준 행 = elecFactors.length - 1 - BASE_FACTOR_IDX
   const baseRowIdx = elecFactors.length - 1 - BASE_FACTOR_IDX;
@@ -196,47 +229,71 @@ export function ProfitabilityMap({ input }: Props) {
 
             {/* 셀 그리드 */}
             <div style={{ width: gridWidth }}>
-              {cells.map((row, rowIdx) => (
-                <div key={rowIdx} style={{ display: 'flex', height: CELL_H }}>
-                  {row.map((cell, colIdx) => {
-                    const v = mc.getValue(cell, lifetime);
-                    const bg = cellColor(v, vMin, vMax, mc.higherIsBetter);
-                    const isBase = rowIdx === baseRowIdx && colIdx === baseColIdx;
-                    const isHovered =
-                      hoveredCell?.capexFactor === cell.capexFactor &&
-                      hoveredCell?.elecFactor === cell.elecFactor;
+              {/* 셀 행 + NPV=0 경계선 SVG 오버레이 */}
+              <div style={{ position: 'relative', width: gridWidth, height: gridHeight }}>
+                {cells.map((row, rowIdx) => (
+                  <div key={rowIdx} style={{ display: 'flex', height: CELL_H }}>
+                    {row.map((cell, colIdx) => {
+                      const v = mc.getValue(cell, lifetime);
+                      const bg = cellColor(v, vMin, vMax, mc.higherIsBetter);
+                      const isBase = rowIdx === baseRowIdx && colIdx === baseColIdx;
+                      const isHovered =
+                        hoveredCell?.capexFactor === cell.capexFactor &&
+                        hoveredCell?.elecFactor === cell.elecFactor;
 
-                    return (
-                      <div
-                        key={colIdx}
-                        style={{
-                          width: CELL_W,
-                          height: CELL_H,
-                          background: bg,
-                          border: isBase
-                            ? '2px solid #18181b'
-                            : isHovered
-                              ? '1.5px solid #3f3f46'
-                              : '0.5px solid rgba(0,0,0,0.08)',
-                          boxSizing: 'border-box',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          fontSize: 9,
-                          fontWeight: isBase ? 700 : 400,
-                          color: 'rgba(0,0,0,0.65)',
-                          transition: 'filter 0.1s',
-                        }}
-                        onMouseEnter={() => setHoveredCell(cell)}
-                        onMouseLeave={() => setHoveredCell(null)}
-                      >
-                        {mc.fmtCell(v, lifetime)}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+                      return (
+                        <div
+                          key={colIdx}
+                          style={{
+                            width: CELL_W,
+                            height: CELL_H,
+                            background: bg,
+                            border: isBase
+                              ? '2px solid #18181b'
+                              : isHovered
+                                ? '1.5px solid #3f3f46'
+                                : '0.5px solid rgba(0,0,0,0.08)',
+                            boxSizing: 'border-box',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: 9,
+                            fontWeight: isBase ? 700 : 400,
+                            color: 'rgba(0,0,0,0.65)',
+                            transition: 'filter 0.1s',
+                          }}
+                          onMouseEnter={() => setHoveredCell(cell)}
+                          onMouseLeave={() => setHoveredCell(null)}
+                        >
+                          {mc.fmtCell(v, lifetime)}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+                {/* NPV=0 경계선 오버레이 */}
+                {boundarySegments.length > 0 && (
+                  <svg
+                    style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+                    width={gridWidth}
+                    height={gridHeight}
+                  >
+                    {boundarySegments.map((seg, i) => (
+                      <line
+                        key={i}
+                        x1={seg.x1}
+                        y1={seg.y1}
+                        x2={seg.x2}
+                        y2={seg.y2}
+                        stroke="#1d4ed8"
+                        strokeWidth={2}
+                        strokeLinecap="square"
+                      />
+                    ))}
+                  </svg>
+                )}
+              </div>
 
               {/* X축 레이블 */}
               <div style={{ display: 'flex', height: X_LABEL_H }}>
@@ -279,6 +336,14 @@ export function ProfitabilityMap({ input }: Props) {
         />
         <span className="text-xs text-zinc-500">{mc.higherIsBetter ? '높음' : '나쁨'}</span>
         <span className="text-xs text-zinc-400 ml-2">■ 기준값 셀</span>
+        {metric === 'npv' && (
+          <span className="text-xs text-blue-700 ml-2 flex items-center gap-1">
+            <svg width="16" height="8" style={{ display: 'inline' }}>
+              <line x1="0" y1="4" x2="16" y2="4" stroke="#1d4ed8" strokeWidth="2" />
+            </svg>
+            NPV=0 경계
+          </span>
+        )}
       </div>
 
       {/* 선택/기준 셀 정보 패널 */}
