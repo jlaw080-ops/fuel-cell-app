@@ -293,7 +293,7 @@ export function ResultsSection({
       : null;
 
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
       {/* 리포트 저장 카드 — 탭 위 항상 표시 */}
       <Card>
         <CardContent className="space-y-3">

@@ -13,7 +13,7 @@ export default async function AuthPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
+    <main className="w-full mx-auto max-w-md px-6 py-16">
       <h1 className="text-2xl font-bold mb-6">로그인</h1>
       {user ? (
         <div className="space-y-4">

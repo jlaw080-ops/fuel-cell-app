@@ -212,7 +212,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
   const inputReady = fuelCellTotal > 0 && operationValid;
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       {loadedFromReport && (
         <div className="border border-[#3d3a39] bg-[#1a1a1a] rounded p-3 text-sm text-[#00d992] flex items-center gap-3">
           <span className="flex-1">
