@@ -222,7 +222,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
       )}
 
       {step === 'input' ? (
-        <div className="space-y-10">
+        <div className="w-full space-y-10">
           <div className="flex justify-end">
             <Button type="button" onClick={onReset} variant="outline" size="sm">
               입력 초기화
@@ -336,7 +336,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="w-full space-y-6">
           <div className="flex items-center gap-2">
             <Button type="button" onClick={() => setStep('input')} variant="outline" size="sm">
               ← 입력 수정

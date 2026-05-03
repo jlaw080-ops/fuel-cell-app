@@ -331,7 +331,7 @@ export function ResultsSection({
 
       {/* ── 탭 1: 기본 결과 ── */}
       {activeTab === 'basic' && (
-        <div className="space-y-4">
+        <div className="w-full space-y-4">
           {hasPartialRevenue && (
             <section className="p-3 rounded border border-amber-200 bg-amber-50 text-sm text-amber-700">
               <strong>수익 데이터 일부 누락</strong> — 요금 라이브러리에 항목이 없어 해당 수익을
@@ -457,7 +457,7 @@ export function ResultsSection({
 
       {/* ── 탭 2: 투자 분석 ── */}
       {activeTab === 'analysis' && (
-        <div className="space-y-4">
+        <div className="w-full space-y-4">
           {sharedInput ? (
             <>
               <InsightSummary
