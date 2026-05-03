@@ -229,7 +229,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
             </Button>
           </div>
 
-          <section className="space-y-4">
+          <section className="border border-[#3d3a39] rounded-xl p-5 bg-[#1a1a1a] space-y-4">
             <header className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <h2 className="text-xl font-semibold text-[#f2f2f2]">연료전지 정보 입력</h2>
@@ -261,7 +261,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
             )}
           </section>
 
-          <section className="space-y-4">
+          <section className="border border-[#3d3a39] rounded-xl p-5 bg-[#1a1a1a] space-y-4">
             <header className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <h2 className="text-xl font-semibold text-[#f2f2f2]">운전시간 입력</h2>
@@ -295,7 +295,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
             )}
           </section>
 
-          <section className="space-y-3">
+          <section className="border border-[#3d3a39] rounded-xl p-5 bg-[#1a1a1a] space-y-3">
             <h2 className="text-xl font-semibold text-[#f2f2f2]">전기요금 기준</h2>
             <div className="flex items-center gap-2">
               <span className="text-sm text-[#8b949e] whitespace-nowrap shrink-0">요금제 선택</span>
@@ -319,7 +319,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
             </div>
           </section>
 
-          <section className="space-y-3">
+          <section className="border border-[#3d3a39] rounded-xl p-5 bg-[#1a1a1a] space-y-3">
             <h2 className="text-xl font-semibold text-[#f2f2f2]">경제성 설정</h2>
             <EconomicsSettingsPanel value={econSettings} onChange={setEconSettings} />
           </section>

@@ -331,72 +331,77 @@ export function ResultsSection({
           )}
 
           {/* 결과 요약 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 에너지 산출·수익 */}
-            <Card>
-              <CardContent className="pt-4">
-                <h3 className="text-sm font-semibold text-[#b8b3b0] mb-3">에너지 산출·수익</h3>
-                <MetricRow
-                  label="연간 발전량"
-                  value={fmt(annualElecKWh > 0 ? annualElecKWh / 1000 : null, 1)}
-                  unit="MWh/년"
-                />
-                <MetricRow
-                  label="연간 열생산량"
-                  value={fmt(annualHeatKWh != null ? annualHeatKWh / 1000 : null, 1)}
-                  unit="MWh/년"
-                />
-                <MetricRow
-                  label="연간 발전수익"
-                  value={fmt(annualElecRev != null ? annualElecRev / 10000 : null, 0)}
-                  unit="만원/년"
-                />
-                <MetricRow
-                  label="연간 열수익"
-                  value={fmt(annualHeatRev != null ? annualHeatRev / 10000 : null, 0)}
-                  unit="만원/년"
-                />
-                <MetricRow
-                  label="연간 도시가스요금"
-                  value={fmt(annualGasCost != null ? annualGasCost / 10000 : null, 0)}
-                  unit="만원/년"
-                />
-                <MetricRow
-                  label="연간 순수익"
-                  value={fmt(annualNetRev != null ? annualNetRev / 10000 : null, 0)}
-                  unit="만원/년"
-                  highlight
-                />
-              </CardContent>
-            </Card>
+          <div className="border border-[#3d3a39] rounded-xl p-5 bg-[#1a1a1a]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 에너지 산출·수익 */}
+              <Card>
+                <CardContent className="pt-4">
+                  <h3 className="text-sm font-semibold text-[#b8b3b0] mb-3">에너지 산출·수익</h3>
+                  <MetricRow
+                    label="연간 발전량"
+                    value={fmt(annualElecKWh > 0 ? annualElecKWh / 1000 : null, 1)}
+                    unit="MWh/년"
+                  />
+                  <MetricRow
+                    label="연간 열생산량"
+                    value={fmt(annualHeatKWh != null ? annualHeatKWh / 1000 : null, 1)}
+                    unit="MWh/년"
+                  />
+                  <MetricRow
+                    label="연간 발전수익"
+                    value={fmt(annualElecRev != null ? annualElecRev / 10000 : null, 0)}
+                    unit="만원/년"
+                  />
+                  <MetricRow
+                    label="연간 열수익"
+                    value={fmt(annualHeatRev != null ? annualHeatRev / 10000 : null, 0)}
+                    unit="만원/년"
+                  />
+                  <MetricRow
+                    label="연간 도시가스요금"
+                    value={fmt(annualGasCost != null ? annualGasCost / 10000 : null, 0)}
+                    unit="만원/년"
+                  />
+                  <MetricRow
+                    label="연간 순수익"
+                    value={fmt(annualNetRev != null ? annualNetRev / 10000 : null, 0)}
+                    unit="만원/년"
+                    highlight
+                  />
+                </CardContent>
+              </Card>
 
-            {/* 경제성 */}
-            <Card>
-              <CardContent className="pt-4">
-                <h3 className="text-sm font-semibold text-[#b8b3b0] mb-3">경제성</h3>
-                <MetricRow
-                  label="설치비 (CAPEX)"
-                  value={fmt(
-                    computed.econ.capex != null ? computed.econ.capex / 100_000_000 : null,
-                    2,
-                  )}
-                  unit="억원"
-                />
-                <MetricRow label="단순 회수기간" value={fmt(computed.payback, 1)} unit="년" />
-                <MetricRow
-                  label={`NPV (${settings.lifetime}년)`}
-                  value={fmt(summary20?.NPV_원 != null ? summary20.NPV_원 / 100_000_000 : null, 2)}
-                  unit="억원"
-                  highlight
-                />
-                <MetricRow
-                  label={`IRR (${settings.lifetime}년)`}
-                  value={summary20?.IRR != null ? (summary20.IRR * 100).toFixed(2) : '—'}
-                  unit="%"
-                  highlight
-                />
-              </CardContent>
-            </Card>
+              {/* 경제성 */}
+              <Card>
+                <CardContent className="pt-4">
+                  <h3 className="text-sm font-semibold text-[#b8b3b0] mb-3">경제성</h3>
+                  <MetricRow
+                    label="설치비 (CAPEX)"
+                    value={fmt(
+                      computed.econ.capex != null ? computed.econ.capex / 100_000_000 : null,
+                      2,
+                    )}
+                    unit="억원"
+                  />
+                  <MetricRow label="단순 회수기간" value={fmt(computed.payback, 1)} unit="년" />
+                  <MetricRow
+                    label={`NPV (${settings.lifetime}년)`}
+                    value={fmt(
+                      summary20?.NPV_원 != null ? summary20.NPV_원 / 100_000_000 : null,
+                      2,
+                    )}
+                    unit="억원"
+                    highlight
+                  />
+                  <MetricRow
+                    label={`IRR (${settings.lifetime}년)`}
+                    value={summary20?.IRR != null ? (summary20.IRR * 100).toFixed(2) : '—'}
+                    unit="%"
+                    highlight
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* 차트 */}
