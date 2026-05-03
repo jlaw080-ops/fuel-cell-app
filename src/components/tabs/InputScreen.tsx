@@ -16,7 +16,11 @@ import type { AllLibraries } from '@/lib/data/loadLibraries';
 import { getClientId } from '@/lib/session/clientId';
 import { saveFuelCellInput, saveOperationInput, loadLatestInputs } from '@/lib/actions/inputs';
 import { loadReport } from '@/lib/actions/reports';
-import type { EconomicsSettings } from '@/components/results/EconomicsSettingsPanel';
+import {
+  EconomicsSettingsPanel,
+  DEFAULT_SETTINGS,
+  type EconomicsSettings,
+} from '@/components/results/EconomicsSettingsPanel';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -61,8 +65,9 @@ export function InputScreen({ libraries, reportId = null }: Props) {
   const [initialOperation, setInitialOperation] = useState<
     Partial<OperationInputState> | undefined
   >();
-  const [initialSettings, setInitialSettings] = useState<EconomicsSettings | undefined>();
+  const [econSettings, setEconSettings] = useState<EconomicsSettings>(DEFAULT_SETTINGS);
   const [initialTitle, setInitialTitle] = useState<string | null | undefined>();
+  const [step, setStep] = useState<'input' | 'results'>('input');
   const [loadedFromReport, setLoadedFromReport] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
 
@@ -108,7 +113,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
             })),
           );
           setInitialOperation(snap.inputs.operation);
-          setInitialSettings(snap.settings as EconomicsSettings);
+          setEconSettings(snap.settings as EconomicsSettings);
           setInitialTitle(res.data.title);
           setLoadedFromReport(reportId);
         }
@@ -152,7 +157,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
     if (!confirm('입력값과 결과를 모두 초기화하시겠습니까?')) return;
     setInitialFuelCell(undefined);
     setInitialOperation(undefined);
-    setInitialSettings(undefined);
+    setEconSettings(DEFAULT_SETTINGS);
     setInitialTitle(undefined);
     setLoadedFromReport(null);
     setFuelCellSets([]);
@@ -161,6 +166,7 @@ export function InputScreen({ libraries, reportId = null }: Props) {
     setOperationValid(false);
     setFcMsg(null);
     setOpMsg(null);
+    setStep('input');
     setSkipRestore(true);
     setResetKey((k) => k + 1);
     if (reportId) router.replace('/');
@@ -200,123 +206,163 @@ export function InputScreen({ libraries, reportId = null }: Props) {
   }
 
   if (!restored) {
-    return <div className="p-8 text-zinc-500">불러오는 중...</div>;
+    return <div className="p-8 text-[#8b949e]">불러오는 중...</div>;
   }
 
+  const inputReady = fuelCellTotal > 0 && operationValid;
+
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {loadedFromReport && (
-        <div className="border border-blue-300 bg-blue-50 rounded p-3 text-sm text-blue-900 flex items-center gap-3">
+        <div className="border border-[#3d3a39] bg-[#1a1a1a] rounded p-3 text-sm text-[#00d992] flex items-center gap-3">
           <span className="flex-1">
             저장된 리포트에서 입력값과 설정을 불러왔습니다. 수정 후 다시 저장할 수 있습니다.
           </span>
         </div>
       )}
-      <div className="flex justify-end">
-        <Button type="button" onClick={onReset} variant="outline" size="sm">
-          입력 초기화
-        </Button>
-      </div>
-      <section className="space-y-4">
-        <header className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 className="text-xl font-semibold">연료전지 정보 입력</h2>
-            <p className="text-sm text-zinc-600">형식 → 제조사 → 모델 순으로 선택하세요.</p>
+
+      {step === 'input' ? (
+        <div className="space-y-10">
+          <div className="flex justify-end">
+            <Button type="button" onClick={onReset} variant="outline" size="sm">
+              입력 초기화
+            </Button>
           </div>
-          <Button
-            type="button"
-            onClick={onSaveFuelCell}
-            disabled={pending || !clientId}
-            className="shrink-0"
-          >
-            {pending ? '저장 중...' : '연료전지 정보 저장'}
-          </Button>
-        </header>
 
-        <FuelCellSetList
-          key={`fc-${resetKey}`}
-          library={fuelCellLibrary}
-          initial={initialFuelCell}
-          onChange={handleFuelCellChange}
-        />
+          <section className="space-y-4">
+            <header className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h2 className="text-xl font-semibold text-[#f2f2f2]">연료전지 정보 입력</h2>
+                <p className="text-sm text-[#8b949e]">형식 → 제조사 → 모델 순으로 선택하세요.</p>
+              </div>
+              <Button
+                type="button"
+                onClick={onSaveFuelCell}
+                disabled={pending || !clientId}
+                className="shrink-0"
+              >
+                {pending ? '저장 중...' : '연료전지 정보 저장'}
+              </Button>
+            </header>
 
-        {fcMsg && (
-          <div className={fcMsg.kind === 'ok' ? 'text-sm text-green-700' : 'text-sm text-red-600'}>
-            {fcMsg.text}
-          </div>
-        )}
-      </section>
+            <FuelCellSetList
+              key={`fc-${resetKey}`}
+              library={fuelCellLibrary}
+              initial={initialFuelCell}
+              onChange={handleFuelCellChange}
+            />
 
-      <section className="space-y-4">
-        <header className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 className="text-xl font-semibold">운전시간 입력</h2>
-            <p className="text-sm text-zinc-600">연간 운전유형과 일일 운전시간을 입력하세요.</p>
-          </div>
-          <Button
-            type="button"
-            onClick={onSaveOperation}
-            disabled={pending || !clientId || !operationValid}
-            className="shrink-0"
-          >
-            {pending ? '저장 중...' : '운전시간 저장'}
-          </Button>
-        </header>
+            {fcMsg && (
+              <div
+                className={fcMsg.kind === 'ok' ? 'text-sm text-[#00d992]' : 'text-sm text-red-400'}
+              >
+                {fcMsg.text}
+              </div>
+            )}
+          </section>
 
-        <OperationProfileSelector
-          key={`op-${resetKey}`}
-          library={operationLibrary}
-          initial={initialOperation}
-          onChange={handleOperationChange}
-        />
+          <section className="space-y-4">
+            <header className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h2 className="text-xl font-semibold text-[#f2f2f2]">운전시간 입력</h2>
+                <p className="text-sm text-[#8b949e]">
+                  연간 운전유형과 일일 운전시간을 입력하세요.
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={onSaveOperation}
+                disabled={pending || !clientId || !operationValid}
+                className="shrink-0"
+              >
+                {pending ? '저장 중...' : '운전시간 저장'}
+              </Button>
+            </header>
 
-        {opMsg && (
-          <div className={opMsg.kind === 'ok' ? 'text-sm text-green-700' : 'text-sm text-red-600'}>
-            {opMsg.text}
-          </div>
-        )}
-      </section>
+            <OperationProfileSelector
+              key={`op-${resetKey}`}
+              library={operationLibrary}
+              initial={initialOperation}
+              onChange={handleOperationChange}
+            />
 
-      <section className="space-y-4">
-        <header className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-xl font-semibold">결과</h2>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-zinc-600 whitespace-nowrap">전기요금 기준</span>
-            <Select
-              value={String(selectedElecIndex)}
-              onValueChange={(v) => setSelectedElecIndex(Number(v))}
-              disabled={electricityPlans.length <= 1}
+            {opMsg && (
+              <div
+                className={opMsg.kind === 'ok' ? 'text-sm text-[#00d992]' : 'text-sm text-red-400'}
+              >
+                {opMsg.text}
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-xl font-semibold text-[#f2f2f2]">전기요금 기준</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[#8b949e] whitespace-nowrap shrink-0">요금제 선택</span>
+              <Select
+                value={String(selectedElecIndex)}
+                onValueChange={(v) => setSelectedElecIndex(Number(v))}
+                disabled={electricityPlans.length <= 1}
+              >
+                <SelectTrigger className="w-[260px] text-sm">
+                  <SelectValue placeholder="요금제 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {electricityPlans.map((plan, i) => (
+                    <SelectItem key={i} value={String(i)}>
+                      {plan.요금제}
+                      {plan.is_active ? ' ★' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-xl font-semibold text-[#f2f2f2]">경제성 설정</h2>
+            <EconomicsSettingsPanel value={econSettings} onChange={setEconSettings} />
+          </section>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              type="button"
+              onClick={() => setStep('results')}
+              disabled={!inputReady}
+              className="px-6"
             >
-              <SelectTrigger className="w-[260px] text-sm">
-                <SelectValue placeholder="요금제 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {electricityPlans.map((plan, i) => (
-                  <SelectItem key={i} value={String(i)}>
-                    {plan.요금제}
-                    {plan.is_active ? ' ★' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              결과 보기 →
+            </Button>
           </div>
-        </header>
-        <ResultsSection
-          key={`results-${resetKey}`}
-          fuelCellSets={fuelCellSets}
-          fuelCellTotal={fuelCellTotal}
-          operation={operationState}
-          operationValid={operationValid}
-          libraries={{
-            ...libraries,
-            electricity: electricityPlans[selectedElecIndex] ?? electricityPlans[0],
-          }}
-          initialSettings={initialSettings}
-          initialTitle={initialTitle}
-        />
-      </section>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <Button type="button" onClick={() => setStep('input')} variant="outline" size="sm">
+              ← 입력 수정
+            </Button>
+            <Button type="button" onClick={onReset} variant="outline" size="sm">
+              입력 초기화
+            </Button>
+          </div>
 
-      <footer className="text-xs text-zinc-400 border-t pt-4">
+          <ResultsSection
+            key={`results-${resetKey}`}
+            fuelCellSets={fuelCellSets}
+            fuelCellTotal={fuelCellTotal}
+            operation={operationState}
+            operationValid={operationValid}
+            libraries={{
+              ...libraries,
+              electricity: electricityPlans[selectedElecIndex] ?? electricityPlans[0],
+            }}
+            settings={econSettings}
+            initialTitle={initialTitle}
+          />
+        </div>
+      )}
+
+      <footer className="text-xs text-[#8b949e] border-t border-[#3d3a39] pt-4">
         client_id: <code>{clientId || '(미할당)'}</code>
       </footer>
     </div>

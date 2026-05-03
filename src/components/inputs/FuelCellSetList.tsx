@@ -81,7 +81,7 @@ export function FuelCellSetList({ library, initial, onChange }: Props) {
         <button
           type="button"
           onClick={add}
-          className="px-3 py-1 border border-zinc-400 rounded text-sm hover:bg-zinc-100"
+          className="px-3 py-1 border border-[#3d3a39] rounded text-sm text-[#f2f2f2] hover:bg-[#1a1a1a] transition-colors"
         >
           + 세트 추가
         </button>

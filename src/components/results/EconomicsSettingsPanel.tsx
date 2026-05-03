@@ -52,14 +52,14 @@ export function EconomicsSettingsPanel({ value, onChange }: Props) {
   }
 
   return (
-    <div className="border border-zinc-200 rounded bg-zinc-50">
+    <div className="border border-[#3d3a39] rounded">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-left hover:bg-zinc-100 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-left text-[#f2f2f2] hover:bg-[#1a1a1a] transition-colors"
       >
         <span>경제성 입력값 (기본값 사용 중 — 클릭하여 수정)</span>
-        <span className="text-zinc-400 text-xs">{open ? '▲ 접기' : '▼ 펼치기'}</span>
+        <span className="text-[#8b949e] text-xs">{open ? '▲ 접기' : '▼ 펼치기'}</span>
       </button>
       <div
         style={{
@@ -71,7 +71,7 @@ export function EconomicsSettingsPanel({ value, onChange }: Props) {
         <div className="overflow-hidden">
           <div className="px-4 pb-4 grid grid-cols-2 gap-4 text-sm">
             <label className="flex flex-col gap-1">
-              <span className="text-zinc-600">분석기간 (년)</span>
+              <span className="text-[#b8b3b0]">분석기간 (년)</span>
               <Input
                 type="number"
                 min={1}
@@ -82,7 +82,7 @@ export function EconomicsSettingsPanel({ value, onChange }: Props) {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-zinc-600">할인율 (%, 명목)</span>
+              <span className="text-[#b8b3b0]">할인율 (%, 명목)</span>
               <Input
                 type="number"
                 step={0.1}
@@ -92,7 +92,7 @@ export function EconomicsSettingsPanel({ value, onChange }: Props) {
             </label>
 
             <div className="flex flex-col gap-1">
-              <span className="text-zinc-600">유지보수 모드</span>
+              <span className="text-[#b8b3b0]">유지보수 모드</span>
               <Select
                 value={value.maintenanceMode}
                 onValueChange={(v) => update('maintenanceMode', v as MaintenanceMode)}
@@ -108,7 +108,7 @@ export function EconomicsSettingsPanel({ value, onChange }: Props) {
             </div>
 
             <label className="flex flex-col gap-1">
-              <span className="text-zinc-600">유지보수 비율 (%, ratio 모드만)</span>
+              <span className="text-[#b8b3b0]">유지보수 비율 (%, ratio 모드만)</span>
               <Input
                 type="number"
                 step={0.1}
@@ -119,7 +119,7 @@ export function EconomicsSettingsPanel({ value, onChange }: Props) {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-zinc-600">전기요금 상승률 (%)</span>
+              <span className="text-[#b8b3b0]">전기요금 상승률 (%)</span>
               <Input
                 type="number"
                 step={0.1}
@@ -129,7 +129,7 @@ export function EconomicsSettingsPanel({ value, onChange }: Props) {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-zinc-600">가스요금 상승률 (%)</span>
+              <span className="text-[#b8b3b0]">가스요금 상승률 (%)</span>
               <Input
                 type="number"
                 step={0.1}
@@ -139,7 +139,7 @@ export function EconomicsSettingsPanel({ value, onChange }: Props) {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-zinc-600">유지보수 상승률 (%)</span>
+              <span className="text-[#b8b3b0]">유지보수 상승률 (%)</span>
               <Input
                 type="number"
                 step={0.1}
@@ -149,7 +149,7 @@ export function EconomicsSettingsPanel({ value, onChange }: Props) {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-zinc-600">가스보일러 효율 (%)</span>
+              <span className="text-[#b8b3b0]">가스보일러 효율 (%)</span>
               <Input
                 type="number"
                 step={0.1}

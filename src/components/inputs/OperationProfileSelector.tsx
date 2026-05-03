@@ -81,7 +81,7 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
         <label className="text-sm shrink-0 w-24">연간 운전유형</label>
         <select
           aria-label="연간 운전유형"
-          className="flex-1 min-w-[8rem] border border-zinc-300 rounded px-2 py-1 text-sm"
+          className="flex-1 min-w-[8rem] border border-[#3d3a39] rounded px-2 py-1 text-sm bg-[#101010] text-[#f2f2f2]"
           value={state.연간운전유형 ?? ''}
           onChange={(e) => handleProfile((e.target.value || null) as OperationProfileKey | null)}
         >
@@ -92,18 +92,18 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
             </option>
           ))}
         </select>
-        <div className="text-sm text-zinc-600 shrink-0">
+        <div className="text-sm text-[#8b949e] shrink-0">
           {profile ? `연간 ${profile.연간가동일}일 가동` : '-'}
         </div>
       </div>
 
       {profile && (
-        <div className="border border-zinc-200 rounded p-3">
+        <div className="border border-[#3d3a39] rounded p-3 bg-[#101010]">
           <div className="text-sm font-medium mb-2">월별 가동일 (read-only)</div>
           <div className="grid grid-cols-4 sm:grid-cols-12 gap-1 text-center text-xs">
             {MONTHS.map((m, i) => (
               <div key={m} className="space-y-1">
-                <div className="text-zinc-500">{m}</div>
+                <div className="text-[#8b949e]">{m}</div>
                 <div className="font-mono">{profile.월별가동일[i]}</div>
               </div>
             ))}
@@ -120,7 +120,7 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
             min={0}
             max={24}
             step="0.5"
-            className="w-16 border border-zinc-300 rounded px-2 py-1 text-right text-sm"
+            className="w-16 border border-[#3d3a39] rounded px-2 py-1 text-right text-sm bg-[#101010] text-[#f2f2f2]"
             value={state.일일_중간부하_운전시간}
             onChange={(e) =>
               setState((prev) => ({
@@ -129,7 +129,7 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
               }))
             }
           />
-          <span className="text-sm text-zinc-600">h</span>
+          <span className="text-sm text-[#8b949e]">h</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -140,7 +140,7 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
             min={0}
             max={24}
             step="0.5"
-            className="w-16 border border-zinc-300 rounded px-2 py-1 text-right text-sm"
+            className="w-16 border border-[#3d3a39] rounded px-2 py-1 text-right text-sm bg-[#101010] text-[#f2f2f2]"
             value={state.일일_최대부하_운전시간}
             onChange={(e) =>
               setState((prev) => ({
@@ -149,14 +149,14 @@ export function OperationProfileSelector({ library, initial, onChange }: Props) 
               }))
             }
           />
-          <span className="text-sm text-zinc-600">h</span>
+          <span className="text-sm text-[#8b949e]">h</span>
         </div>
       </div>
 
       <div className="text-sm">
         합계: <span className="font-semibold">{sumHours} h</span> / 24h
         {!hoursValid && (
-          <span className="ml-2 text-red-600">
+          <span className="ml-2 text-red-400">
             ⚠ 중간부하 + 최대부하 합계가 24시간을 초과합니다.
           </span>
         )}

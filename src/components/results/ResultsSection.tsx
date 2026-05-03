@@ -16,11 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EnergyProductionTable } from './EnergyProductionTable';
 import { RevenueTable } from './RevenueTable';
-import {
-  EconomicsSettingsPanel,
-  DEFAULT_SETTINGS,
-  type EconomicsSettings,
-} from './EconomicsSettingsPanel';
+import type { EconomicsSettings } from './EconomicsSettingsPanel';
 import { EconomicsResult } from './EconomicsResult';
 import { SensitivityTable } from './SensitivityTable';
 import { TornadoChart } from './TornadoChart';
@@ -40,14 +36,14 @@ function CollapsibleSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-zinc-200 rounded-lg overflow-hidden">
+    <div className="border border-[#3d3a39] rounded-lg overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 hover:bg-zinc-100 transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 py-3 bg-[#101010] hover:bg-[#1a1a1a] transition-colors text-left"
       >
-        <span className="text-sm font-semibold text-zinc-800">{title}</span>
-        <span className="text-zinc-400 text-xs">{open ? '▲ 접기' : '▼ 펼치기'}</span>
+        <span className="text-sm font-semibold text-[#f2f2f2]">{title}</span>
+        <span className="text-[#8b949e] text-xs">{open ? '▲ 접기' : '▼ 펼치기'}</span>
       </button>
       <div
         style={{
@@ -75,7 +71,7 @@ interface Props {
     electricity: ElectricityTariffLibrary;
     gas: GasTariffLibrary;
   };
-  initialSettings?: EconomicsSettings;
+  settings: EconomicsSettings;
   initialTitle?: string | null;
 }
 
@@ -85,14 +81,10 @@ export function ResultsSection({
   operation,
   operationValid,
   libraries,
-  initialSettings,
+  settings,
   initialTitle,
 }: Props) {
-  const [settings, setSettings] = useState<EconomicsSettings>(initialSettings ?? DEFAULT_SETTINGS);
   const [title, setTitle] = useState(initialTitle ?? '');
-  useEffect(() => {
-    if (initialSettings) Promise.resolve().then(() => setSettings(initialSettings));
-  }, [initialSettings]);
   useEffect(() => {
     if (initialTitle != null) Promise.resolve().then(() => setTitle(initialTitle));
   }, [initialTitle]);
@@ -135,7 +127,7 @@ export function ResultsSection({
 
   if (!computed) {
     return (
-      <div className="border border-dashed border-zinc-300 rounded p-8 text-center text-sm text-zinc-500">
+      <div className="border border-dashed border-[#3d3a39] rounded p-8 text-center text-sm text-[#8b949e]">
         연료전지 세트와 운전시간을 모두 입력하면 결과가 표시됩니다.
       </div>
     );
@@ -205,12 +197,10 @@ export function ResultsSection({
 
   return (
     <div className="space-y-4">
-      <EconomicsSettingsPanel value={settings} onChange={setSettings} />
-
       <Card>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-3">
-            <label htmlFor="report-title" className="text-sm text-zinc-700 whitespace-nowrap">
+            <label htmlFor="report-title" className="text-sm text-[#b8b3b0] whitespace-nowrap">
               리포트 제목
             </label>
             <input
@@ -220,11 +210,11 @@ export function ResultsSection({
               onChange={(e) => setTitle(e.target.value)}
               maxLength={80}
               placeholder="비워두면 자동 생성됩니다 (예: 30kW 연료전지 (...))"
-              className="flex-1 px-3 py-2 border border-zinc-300 rounded text-sm bg-white"
+              className="flex-1 px-3 py-2 border border-[#3d3a39] rounded text-sm bg-[#101010] text-[#f2f2f2] placeholder:text-[#8b949e]"
             />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-700 flex-1">
+            <span className="text-sm text-[#b8b3b0] flex-1">
               리포트를 A4 형식으로 보고 PDF로 저장할 수 있습니다.
             </span>
             <Button type="button" onClick={() => openReport(false)} variant="outline">
@@ -236,7 +226,7 @@ export function ResultsSection({
           </div>
         </CardContent>
       </Card>
-      {saveErr && <div className="text-sm text-red-600">{saveErr}</div>}
+      {saveErr && <div className="text-sm text-red-400">{saveErr}</div>}
 
       {sharedInput ? (
         <>
@@ -275,12 +265,12 @@ export function ResultsSection({
           />
 
           <section className="space-y-3">
-            <h3 className="text-base font-semibold text-zinc-700">변수별 영향 — 토네이도 차트</h3>
+            <h3 className="text-base font-semibold text-[#b8b3b0]">변수별 영향 — 토네이도 차트</h3>
             <TornadoChart input={sharedInput} />
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-base font-semibold text-zinc-700">목표 역산</h3>
+            <h3 className="text-base font-semibold text-[#b8b3b0]">목표 역산</h3>
             <InverseCalcPanel
               input={sharedInput}
               currentIrr20={summary20?.IRR ?? null}

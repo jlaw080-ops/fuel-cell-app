@@ -172,7 +172,7 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
 
         {/* 용량 / 수량 / 삭제 */}
         <div className="flex items-center gap-2">
-          <span className="flex-1 text-sm text-zinc-600">
+          <span className="flex-1 text-sm text-[#8b949e]">
             {value.발전용량_kW != null ? `${value.발전용량_kW} kW` : '-'}
           </span>
           <Input
@@ -209,7 +209,7 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
               </div>
               {needsCapexOverride && (
                 <label className="flex flex-wrap items-center gap-2">
-                  <span className="text-zinc-700 shrink-0">kW당 설치단가 (원)</span>
+                  <span className="text-[#b8b3b0] shrink-0">kW당 설치단가 (원)</span>
                   <Input
                     type="number"
                     min={0}
@@ -222,7 +222,7 @@ export function FuelCellSetRow({ value, library, onChange, onRemove }: Props) {
               )}
               {needsMaintOverride && (
                 <label className="flex flex-wrap items-center gap-2">
-                  <span className="text-zinc-700 shrink-0">kW당 연간유지비 (원)</span>
+                  <span className="text-[#b8b3b0] shrink-0">kW당 연간유지비 (원)</span>
                   <Input
                     type="number"
                     min={0}
