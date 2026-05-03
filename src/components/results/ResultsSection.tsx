@@ -25,6 +25,33 @@ import { ProfitabilityMap } from './ProfitabilityMap';
 import { InsightSummary } from './InsightSummary';
 import { ReportCharts } from '@/components/charts/ReportCharts';
 
+type ResultTab = 'basic' | 'analysis';
+
+function TabBar({ active, onChange }: { active: ResultTab; onChange: (t: ResultTab) => void }) {
+  const tabs: { key: ResultTab; label: string }[] = [
+    { key: 'basic', label: '기본 결과' },
+    { key: 'analysis', label: '투자 분석' },
+  ];
+  return (
+    <div className="flex border-b border-[#3d3a39]">
+      {tabs.map(({ key, label }) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => onChange(key)}
+          className={`px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            active === key
+              ? 'border-[#00d992] text-[#00d992]'
+              : 'border-transparent text-[#8b949e] hover:text-[#f2f2f2] hover:border-[#3d3a39]'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function CollapsibleSection({
   title,
   children,
@@ -60,6 +87,35 @@ function CollapsibleSection({
   );
 }
 
+function fmt(v: number | null | undefined, decimals = 0): string {
+  if (v == null) return '—';
+  return v.toLocaleString('ko-KR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+function MetricRow({
+  label,
+  value,
+  unit,
+  highlight = false,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between py-1.5 border-b border-[#1e1e1e] last:border-0">
+      <span className="text-xs text-[#8b949e]">{label}</span>
+      <span className={`text-sm font-medium ${highlight ? 'text-[#00d992]' : 'text-[#f2f2f2]'}`}>
+        {value} <span className="text-xs text-[#8b949e]">{unit}</span>
+      </span>
+    </div>
+  );
+}
+
 interface Props {
   fuelCellSets: FuelCellInputSet[];
   fuelCellTotal: number;
@@ -91,6 +147,7 @@ export function ResultsSection({
   const router = useRouter();
   const [saving, startSave] = useTransition();
   const [saveErr, setSaveErr] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ResultTab>('basic');
 
   const computed = useMemo(() => {
     if (!operationValid || !operation || fuelCellSets.length === 0 || fuelCellTotal <= 0) {
@@ -195,8 +252,22 @@ export function ResultsSection({
 
   const summary20 = computed.econ.summary.데이터.find((r) => r.기간_년 === 20);
 
+  // 에너지·수익 요약 수치
+  const annualElecKWh =
+    (computed.production.합계.월간_중간부하시간_전력생산량_kWh ?? 0) +
+    (computed.production.합계.월간_최대부하시간_전력생산량_kWh ?? 0);
+  const annualHeatKWh = computed.production.합계.월간_연료전지_열생산량_kWh;
+  const annualElecRev = computed.revenue.합계.발전_월간총수익_원;
+  const annualHeatRev = computed.revenue.합계.열생산_월간총수익_원;
+  const annualGasCost = computed.revenue.합계.도시가스사용요금_원;
+  const annualNetRev =
+    annualElecRev != null && annualHeatRev != null && annualGasCost != null
+      ? annualElecRev + annualHeatRev - annualGasCost
+      : null;
+
   return (
     <div className="space-y-4">
+      {/* 리포트 저장 카드 — 탭 위 항상 표시 */}
       <Card>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-3">
@@ -228,12 +299,16 @@ export function ResultsSection({
       </Card>
       {saveErr && <div className="text-sm text-red-400">{saveErr}</div>}
 
-      {sharedInput ? (
-        <>
+      {/* 탭 바 */}
+      <TabBar active={activeTab} onChange={setActiveTab} />
+
+      {/* ── 탭 1: 기본 결과 ── */}
+      {activeTab === 'basic' && (
+        <div className="space-y-4">
           {hasPartialRevenue && (
             <section className="p-3 rounded border border-amber-200 bg-amber-50 text-sm text-amber-700">
               <strong>수익 데이터 일부 누락</strong> — 요금 라이브러리에 항목이 없어 해당 수익을
-              0으로 대체해 민감도 계산합니다. 실제와 다를 수 있습니다.
+              0으로 대체해 계산합니다. 실제와 다를 수 있습니다.
               {computed.revenue.합계.발전_월간총수익_원 == null && (
                 <span>
                   {' '}
@@ -255,80 +330,159 @@ export function ResultsSection({
             </section>
           )}
 
-          <InsightSummary
-            npv20={summary20?.NPV_원 ?? null}
-            irr20={summary20?.IRR ?? null}
-            payback={computed.payback}
-            discountRate={settings.discountRate}
-            sensitivityInput={sharedInput}
-            profitabilityMapInput={sharedInput}
+          {/* 결과 요약 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 에너지 산출·수익 */}
+            <Card>
+              <CardContent className="pt-4">
+                <h3 className="text-sm font-semibold text-[#b8b3b0] mb-3">에너지 산출·수익</h3>
+                <MetricRow
+                  label="연간 발전량"
+                  value={fmt(annualElecKWh > 0 ? annualElecKWh / 1000 : null, 1)}
+                  unit="MWh/년"
+                />
+                <MetricRow
+                  label="연간 열생산량"
+                  value={fmt(annualHeatKWh != null ? annualHeatKWh / 1000 : null, 1)}
+                  unit="MWh/년"
+                />
+                <MetricRow
+                  label="연간 발전수익"
+                  value={fmt(annualElecRev != null ? annualElecRev / 10000 : null, 0)}
+                  unit="만원/년"
+                />
+                <MetricRow
+                  label="연간 열수익"
+                  value={fmt(annualHeatRev != null ? annualHeatRev / 10000 : null, 0)}
+                  unit="만원/년"
+                />
+                <MetricRow
+                  label="연간 도시가스요금"
+                  value={fmt(annualGasCost != null ? annualGasCost / 10000 : null, 0)}
+                  unit="만원/년"
+                />
+                <MetricRow
+                  label="연간 순수익"
+                  value={fmt(annualNetRev != null ? annualNetRev / 10000 : null, 0)}
+                  unit="만원/년"
+                  highlight
+                />
+              </CardContent>
+            </Card>
+
+            {/* 경제성 */}
+            <Card>
+              <CardContent className="pt-4">
+                <h3 className="text-sm font-semibold text-[#b8b3b0] mb-3">경제성</h3>
+                <MetricRow
+                  label="설치비 (CAPEX)"
+                  value={fmt(
+                    computed.econ.capex != null ? computed.econ.capex / 100_000_000 : null,
+                    2,
+                  )}
+                  unit="억원"
+                />
+                <MetricRow label="단순 회수기간" value={fmt(computed.payback, 1)} unit="년" />
+                <MetricRow
+                  label={`NPV (${settings.lifetime}년)`}
+                  value={fmt(summary20?.NPV_원 != null ? summary20.NPV_원 / 100_000_000 : null, 2)}
+                  unit="억원"
+                  highlight
+                />
+                <MetricRow
+                  label={`IRR (${settings.lifetime}년)`}
+                  value={summary20?.IRR != null ? (summary20.IRR * 100).toFixed(2) : '—'}
+                  unit="%"
+                  highlight
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 차트 */}
+          <ReportCharts
+            snapshot={{
+              results: {
+                production: computed.production,
+                revenue: computed.revenue,
+                economics: computed.econ,
+                paybackYears: computed.payback,
+              },
+            }}
           />
 
-          <section className="space-y-3">
-            <h3 className="text-base font-semibold text-[#b8b3b0]">변수별 영향 — 토네이도 차트</h3>
-            <TornadoChart input={sharedInput} />
-          </section>
+          {/* 상세 (접기/펼치기) */}
+          <CollapsibleSection title="에너지 산출 / 수익 상세">
+            <EnergyProductionTable data={computed.production} />
+            <RevenueTable data={computed.revenue} />
+          </CollapsibleSection>
 
-          <section className="space-y-3">
-            <h3 className="text-base font-semibold text-[#b8b3b0]">목표 역산</h3>
-            <InverseCalcPanel
-              input={sharedInput}
-              currentIrr20={summary20?.IRR ?? null}
-              currentPayback={computed.payback}
-            />
-          </section>
-        </>
-      ) : (
-        <section className="space-y-2 p-4 rounded border border-amber-200 bg-amber-50">
-          <h3 className="text-base font-semibold text-amber-800">
-            투자 진단 / 목표 역산을 표시할 수 없습니다
-          </h3>
-          <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
-            {computed.econ.capex == null && (
-              <li>
-                <strong>설치단가 미입력</strong> — 선택한 제품의 kW당 설치단가가 없습니다. 입력
-                화면에서 &ldquo;kW당 설치단가 (원)&rdquo; 필드에 직접 입력해주세요.
-              </li>
-            )}
-            {computed.econ.capex != null && baseMaintFallback == null && (
-              <li>
-                <strong>유지비 미입력</strong> — 유지비 데이터가 없습니다. 경제성 설정에서 유지비를
-                직접 입력해주세요.
-              </li>
-            )}
-          </ul>
-        </section>
+          <CollapsibleSection title="경제성 상세 (현금흐름)">
+            <EconomicsResult result={computed.econ} payback={computed.payback} />
+          </CollapsibleSection>
+        </div>
       )}
 
-      <CollapsibleSection title="에너지 산출 / 수익 상세">
-        <EnergyProductionTable data={computed.production} />
-        <RevenueTable data={computed.revenue} />
-      </CollapsibleSection>
+      {/* ── 탭 2: 투자 분석 ── */}
+      {activeTab === 'analysis' && (
+        <div className="space-y-4">
+          {sharedInput ? (
+            <>
+              <InsightSummary
+                npv20={summary20?.NPV_원 ?? null}
+                irr20={summary20?.IRR ?? null}
+                payback={computed.payback}
+                discountRate={settings.discountRate}
+                sensitivityInput={sharedInput}
+                profitabilityMapInput={sharedInput}
+              />
 
-      <CollapsibleSection title="경제성 상세 (현금흐름 · 차트)">
-        <EconomicsResult result={computed.econ} payback={computed.payback} />
-        <ReportCharts
-          snapshot={{
-            results: {
-              production: computed.production,
-              revenue: computed.revenue,
-              economics: computed.econ,
-              paybackYears: computed.payback,
-            },
-          }}
-        />
-      </CollapsibleSection>
+              <section className="space-y-3">
+                <h3 className="text-base font-semibold text-[#b8b3b0]">
+                  변수별 영향 — 토네이도 차트
+                </h3>
+                <TornadoChart input={sharedInput} />
+              </section>
 
-      {sharedInput && (
-        <>
-          <CollapsibleSection title="민감도 분석 테이블">
-            <SensitivityTable input={sharedInput} />
-          </CollapsibleSection>
+              <section className="space-y-3">
+                <h3 className="text-base font-semibold text-[#b8b3b0]">목표 역산</h3>
+                <InverseCalcPanel
+                  input={sharedInput}
+                  currentIrr20={summary20?.IRR ?? null}
+                  currentPayback={computed.payback}
+                />
+              </section>
 
-          <CollapsibleSection title="수익성 지도 (CAPEX × 발전수익)">
-            <ProfitabilityMap input={sharedInput} />
-          </CollapsibleSection>
-        </>
+              <CollapsibleSection title="민감도 분석 테이블">
+                <SensitivityTable input={sharedInput} />
+              </CollapsibleSection>
+
+              <CollapsibleSection title="수익성 지도 (CAPEX × 발전수익)">
+                <ProfitabilityMap input={sharedInput} />
+              </CollapsibleSection>
+            </>
+          ) : (
+            <section className="space-y-2 p-4 rounded border border-amber-200 bg-amber-50">
+              <h3 className="text-base font-semibold text-amber-800">
+                투자 진단 / 목표 역산을 표시할 수 없습니다
+              </h3>
+              <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
+                {computed.econ.capex == null && (
+                  <li>
+                    <strong>설치단가 미입력</strong> — 선택한 제품의 kW당 설치단가가 없습니다. 입력
+                    화면에서 &ldquo;kW당 설치단가 (원)&rdquo; 필드에 직접 입력해주세요.
+                  </li>
+                )}
+                {computed.econ.capex != null && baseMaintFallback == null && (
+                  <li>
+                    <strong>유지비 미입력</strong> — 유지비 데이터가 없습니다. 경제성 설정에서
+                    유지비를 직접 입력해주세요.
+                  </li>
+                )}
+              </ul>
+            </section>
+          )}
+        </div>
       )}
     </div>
   );
