@@ -1,11 +1,5 @@
 'use client';
 
-/**
- * Phase 4e — 결과 섹션 통합.
- *
- * 입력값 + 4종 라이브러리를 받아 클라이언트 측 useMemo로 계산,
- * 유효한 경우에만 결과 표/카드를 렌더링.
- */
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { FuelCellLibrary } from '@/types/fuelCell';
@@ -34,6 +28,31 @@ import { InverseCalcPanel } from './InverseCalcPanel';
 import { ProfitabilityMap } from './ProfitabilityMap';
 import { InsightSummary } from './InsightSummary';
 import { ReportCharts } from '@/components/charts/ReportCharts';
+
+function CollapsibleSection({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-zinc-200 rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 hover:bg-zinc-100 transition-colors text-left"
+      >
+        <span className="text-sm font-semibold text-zinc-800">{title}</span>
+        <span className="text-zinc-400 text-xs">{open ? '▲ 접기' : '▼ 펼치기'}</span>
+      </button>
+      {open && <div className="px-4 py-4 space-y-6">{children}</div>}
+    </div>
+  );
+}
 
 interface Props {
   fuelCellSets: FuelCellInputSet[];
@@ -142,14 +161,10 @@ export function ResultsSection({
     });
   }
 
-  // baseAnnualMaintenance가 null인 경우(fixedCost 모드이나 라이브러리에 데이터 없음)
-  // CAPEX × maintenanceRatio 로 폴백하여 민감도 분석이 항상 표시되도록 함
   const baseMaintFallback =
     computed.econ.baseAnnualMaintenance ??
     (computed.econ.capex != null ? computed.econ.capex * settings.maintenanceRatio : null);
 
-  // 수익 합계값이 null인 경우 0으로 폴백 — 가스 타리프 라이브러리에 항목 누락 시 발생
-  // 민감도 분석은 0 기준으로라도 표시하며, 누락 항목은 경고 배너로 안내한다
   const baseElecRevFallback = computed.revenue.합계.발전_월간총수익_원 ?? 0;
   const baseHeatRevFallback = computed.revenue.합계.열생산_월간총수익_원 ?? 0;
   const baseGasCostFallback = computed.revenue.합계.도시가스사용요금_원 ?? 0;
@@ -158,8 +173,28 @@ export function ResultsSection({
     computed.revenue.합계.열생산_월간총수익_원 == null ||
     computed.revenue.합계.도시가스사용요금_원 == null;
 
+  const hasAnalysis = computed.econ.capex != null && baseMaintFallback != null;
+
+  const sharedInput = hasAnalysis
+    ? {
+        capex: computed.econ.capex!,
+        baseElecRev: baseElecRevFallback,
+        baseHeatRev: baseHeatRevFallback,
+        baseGasCost: baseGasCostFallback,
+        baseMaint: baseMaintFallback!,
+        maintenanceMode: settings.maintenanceMode,
+        lifetime: settings.lifetime,
+        discountRate: settings.discountRate,
+        electricityEscalation: settings.electricityEscalation,
+        gasEscalation: settings.gasEscalation,
+        maintenanceEscalation: settings.maintenanceEscalation,
+      }
+    : null;
+
+  const summary20 = computed.econ.summary.데이터.find((r) => r.기간_년 === 20);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <EconomicsSettingsPanel value={settings} onChange={setSettings} />
 
       <Card>
@@ -193,36 +228,7 @@ export function ResultsSection({
       </Card>
       {saveErr && <div className="text-sm text-red-600">{saveErr}</div>}
 
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold">에너지 산출</h3>
-        <EnergyProductionTable data={computed.production} />
-      </section>
-
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold">에너지 수익</h3>
-        <RevenueTable data={computed.revenue} />
-      </section>
-
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold">경제성 분석</h3>
-        <EconomicsResult result={computed.econ} payback={computed.payback} />
-      </section>
-
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold">시각화</h3>
-        <ReportCharts
-          snapshot={{
-            results: {
-              production: computed.production,
-              revenue: computed.revenue,
-              economics: computed.econ,
-              paybackYears: computed.payback,
-            },
-          }}
-        />
-      </section>
-
-      {computed.econ.capex != null && baseMaintFallback != null ? (
+      {sharedInput ? (
         <>
           {hasPartialRevenue && (
             <section className="p-3 rounded border border-amber-200 bg-amber-50 text-sm text-amber-700">
@@ -249,124 +255,33 @@ export function ResultsSection({
             </section>
           )}
 
+          <InsightSummary
+            npv20={summary20?.NPV_원 ?? null}
+            irr20={summary20?.IRR ?? null}
+            payback={computed.payback}
+            discountRate={settings.discountRate}
+            sensitivityInput={sharedInput}
+            profitabilityMapInput={sharedInput}
+          />
+
           <section className="space-y-3">
-            <h3 className="text-lg font-semibold">민감도 분석</h3>
-            <p className="text-sm text-zinc-500">
-              주요 변수를 ±10% / ±20% 변동시켰을 때 NPV·IRR·회수기간이 어떻게 달라지는지 보여줍니다.
-            </p>
-            <SensitivityTable
-              input={{
-                capex: computed.econ.capex,
-                baseElecRev: baseElecRevFallback,
-                baseHeatRev: baseHeatRevFallback,
-                baseGasCost: baseGasCostFallback,
-                baseMaint: baseMaintFallback,
-                maintenanceMode: settings.maintenanceMode,
-                lifetime: settings.lifetime,
-                discountRate: settings.discountRate,
-                electricityEscalation: settings.electricityEscalation,
-                gasEscalation: settings.gasEscalation,
-                maintenanceEscalation: settings.maintenanceEscalation,
-              }}
-            />
-            <h4 className="text-sm font-semibold text-zinc-700 mt-4">
-              변수별 영향 — 토네이도 차트
-            </h4>
-            <TornadoChart
-              input={{
-                capex: computed.econ.capex,
-                baseElecRev: baseElecRevFallback,
-                baseHeatRev: baseHeatRevFallback,
-                baseGasCost: baseGasCostFallback,
-                baseMaint: baseMaintFallback,
-                maintenanceMode: settings.maintenanceMode,
-                lifetime: settings.lifetime,
-                discountRate: settings.discountRate,
-                electricityEscalation: settings.electricityEscalation,
-                gasEscalation: settings.gasEscalation,
-                maintenanceEscalation: settings.maintenanceEscalation,
-              }}
-            />
+            <h3 className="text-base font-semibold text-zinc-700">변수별 영향 — 토네이도 차트</h3>
+            <TornadoChart input={sharedInput} />
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-lg font-semibold">목표 역산</h3>
+            <h3 className="text-base font-semibold text-zinc-700">목표 역산</h3>
             <InverseCalcPanel
-              input={{
-                capex: computed.econ.capex,
-                baseElecRev: baseElecRevFallback,
-                baseHeatRev: baseHeatRevFallback,
-                baseGasCost: baseGasCostFallback,
-                baseMaint: baseMaintFallback,
-                maintenanceMode: settings.maintenanceMode,
-                lifetime: settings.lifetime,
-                discountRate: settings.discountRate,
-                electricityEscalation: settings.electricityEscalation,
-                gasEscalation: settings.gasEscalation,
-                maintenanceEscalation: settings.maintenanceEscalation,
-              }}
-              currentIrr20={computed.econ.summary.데이터.find((r) => r.기간_년 === 20)?.IRR ?? null}
+              input={sharedInput}
+              currentIrr20={summary20?.IRR ?? null}
               currentPayback={computed.payback}
-            />
-          </section>
-
-          <section className="space-y-3">
-            <h3 className="text-lg font-semibold">투자 진단</h3>
-            <InsightSummary
-              npv={
-                computed.econ.summary.데이터.find((r) => r.기간_년 === settings.lifetime)?.NPV_원 ??
-                null
-              }
-              irr={
-                computed.econ.summary.데이터.find((r) => r.기간_년 === settings.lifetime)?.IRR ??
-                null
-              }
-              payback={computed.payback}
-              lifetime={settings.lifetime}
-              discountRate={settings.discountRate}
-              input={{
-                capex: computed.econ.capex,
-                baseElecRev: baseElecRevFallback,
-                baseHeatRev: baseHeatRevFallback,
-                baseGasCost: baseGasCostFallback,
-                baseMaint: baseMaintFallback,
-                maintenanceMode: settings.maintenanceMode,
-                lifetime: settings.lifetime,
-                discountRate: settings.discountRate,
-                electricityEscalation: settings.electricityEscalation,
-                gasEscalation: settings.gasEscalation,
-                maintenanceEscalation: settings.maintenanceEscalation,
-              }}
-            />
-          </section>
-
-          <section className="space-y-3">
-            <h3 className="text-lg font-semibold">수익성 지도</h3>
-            <p className="text-sm text-zinc-500">
-              CAPEX와 발전수익을 ±50% 범위로 변동시켰을 때 수익성 지표 변화를 2D 히트맵으로
-              표시합니다.
-            </p>
-            <ProfitabilityMap
-              input={{
-                capex: computed.econ.capex,
-                baseElecRev: baseElecRevFallback,
-                baseHeatRev: baseHeatRevFallback,
-                baseGasCost: baseGasCostFallback,
-                baseMaint: baseMaintFallback,
-                maintenanceMode: settings.maintenanceMode,
-                lifetime: settings.lifetime,
-                discountRate: settings.discountRate,
-                electricityEscalation: settings.electricityEscalation,
-                gasEscalation: settings.gasEscalation,
-                maintenanceEscalation: settings.maintenanceEscalation,
-              }}
             />
           </section>
         </>
       ) : (
         <section className="space-y-2 p-4 rounded border border-amber-200 bg-amber-50">
           <h3 className="text-base font-semibold text-amber-800">
-            민감도 분석 / 목표 역산 / 수익성 지도를 표시할 수 없습니다
+            투자 진단 / 목표 역산을 표시할 수 없습니다
           </h3>
           <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
             {computed.econ.capex == null && (
@@ -383,6 +298,37 @@ export function ResultsSection({
             )}
           </ul>
         </section>
+      )}
+
+      <CollapsibleSection title="에너지 산출 / 수익 상세">
+        <EnergyProductionTable data={computed.production} />
+        <RevenueTable data={computed.revenue} />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="경제성 상세 (현금흐름 · 차트)">
+        <EconomicsResult result={computed.econ} payback={computed.payback} />
+        <ReportCharts
+          snapshot={{
+            results: {
+              production: computed.production,
+              revenue: computed.revenue,
+              economics: computed.econ,
+              paybackYears: computed.payback,
+            },
+          }}
+        />
+      </CollapsibleSection>
+
+      {sharedInput && (
+        <>
+          <CollapsibleSection title="민감도 분석 테이블">
+            <SensitivityTable input={sharedInput} />
+          </CollapsibleSection>
+
+          <CollapsibleSection title="수익성 지도 (CAPEX × 발전수익)">
+            <ProfitabilityMap input={sharedInput} />
+          </CollapsibleSection>
+        </>
       )}
     </div>
   );

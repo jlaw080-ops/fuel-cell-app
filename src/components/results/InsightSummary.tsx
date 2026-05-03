@@ -1,363 +1,204 @@
 'use client';
 
 import { useMemo } from 'react';
-import {
-  calcProfitabilityMap,
-  BASE_FACTOR_IDX,
-  MAP_FACTORS,
-  type ProfitabilityMapInput,
-  type MapCell,
-} from '@/lib/calc/profitabilityMap';
+import { calcSensitivity, type SensitivityInput } from '@/lib/calc/sensitivity';
+import { calcProfitabilityMap, type ProfitabilityMapInput } from '@/lib/calc/profitabilityMap';
 
 interface Props {
-  npv: number | null;
-  irr: number | null;
+  npv20: number | null;
+  irr20: number | null;
   payback: number | null;
-  lifetime: number;
   discountRate: number;
-  input: ProfitabilityMapInput;
+  sensitivityInput: SensitivityInput;
+  profitabilityMapInput: ProfitabilityMapInput;
 }
 
-type Verdict = 'good' | 'marginal' | 'poor';
+type Verdict = 'viable' | 'marginal' | 'not_viable';
 
-function findCapexBreakeven(
-  cells: MapCell[][],
-  baseRowIdx: number,
-  capexFactors: number[],
-): number | null {
-  const baseColIdx = BASE_FACTOR_IDX;
-  const baseNpv = cells[baseRowIdx][baseColIdx].npv;
-  if (baseNpv === null) return null;
-
-  if (baseNpv >= 0) {
-    for (let col = baseColIdx + 1; col < capexFactors.length; col++) {
-      const n = cells[baseRowIdx][col].npv;
-      if (n === null) continue;
-      if (n < 0) {
-        const prev = cells[baseRowIdx][col - 1].npv!;
-        const t = prev / (prev - n);
-        return capexFactors[col - 1] + t * (capexFactors[col] - capexFactors[col - 1]);
-      }
-    }
-    return null;
-  } else {
-    for (let col = baseColIdx - 1; col >= 0; col--) {
-      const n = cells[baseRowIdx][col].npv;
-      if (n === null) continue;
-      if (n > 0) {
-        const prev = cells[baseRowIdx][col + 1].npv!;
-        const t = -prev / (n - prev);
-        return capexFactors[col + 1] + t * (capexFactors[col] - capexFactors[col + 1]);
-      }
-    }
-    return null;
-  }
+interface Insights {
+  verdict: Verdict;
+  topRiskLabel: string;
+  topRiskNpvSwing: number;
+  breakEvenThreshold: '10%' | '20%' | null;
+  profitableCells: number;
+  totalCells: number;
 }
 
-function findElecBreakeven(
-  cells: MapCell[][],
-  elecFactors: number[],
-  baseColIdx: number,
-): number | null {
-  const baseRowIdx = elecFactors.length - 1 - BASE_FACTOR_IDX;
-  const baseNpv = cells[baseRowIdx][baseColIdx].npv;
-  if (baseNpv === null) return null;
-
-  if (baseNpv >= 0) {
-    // scan downward (higher rowIdx = lower elecFactor)
-    for (let row = baseRowIdx + 1; row < elecFactors.length; row++) {
-      const n = cells[row][baseColIdx].npv;
-      if (n === null) continue;
-      if (n < 0) {
-        const prev = cells[row - 1][baseColIdx].npv!;
-        const t = prev / (prev - n);
-        return elecFactors[row - 1] + t * (elecFactors[row] - elecFactors[row - 1]);
-      }
-    }
-    return null;
-  } else {
-    // scan upward (lower rowIdx = higher elecFactor)
-    for (let row = baseRowIdx - 1; row >= 0; row--) {
-      const n = cells[row][baseColIdx].npv;
-      if (n === null) continue;
-      if (n > 0) {
-        const prev = cells[row + 1][baseColIdx].npv!;
-        const t = -prev / (n - prev);
-        return elecFactors[row + 1] + t * (elecFactors[row] - elecFactors[row + 1]);
-      }
-    }
-    return null;
-  }
-}
-
-function MetricCard({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: 'green' | 'red' | 'neutral';
-}) {
-  const colorMap = {
-    green: 'text-green-700',
-    red: 'text-red-600',
-    neutral: 'text-zinc-800',
-  };
-  return (
-    <div className="flex flex-col gap-0.5 px-4 py-3 rounded border border-zinc-200 bg-white min-w-[100px]">
-      <span className="text-xs text-zinc-500">{label}</span>
-      <span className={`text-base font-bold ${colorMap[accent ?? 'neutral']}`}>{value}</span>
-      {sub && <span className="text-xs text-zinc-400">{sub}</span>}
-    </div>
-  );
-}
-
-function SafetyBar({ pct, label }: { pct: number | null; label: string }) {
-  if (pct === null) {
-    return (
-      <div className="space-y-1">
-        <div className="flex justify-between text-xs text-zinc-500">
-          <span>{label}</span>
-          <span>데이터 없음</span>
-        </div>
-        <div className="h-2 rounded bg-zinc-100" />
-      </div>
-    );
-  }
-
-  // clamp to [-50, 50] for display
-  const clamped = Math.max(-50, Math.min(50, pct));
-  const positive = pct >= 0;
-  const barPct = Math.abs(clamped) * 2; // 0..100
-
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-xs">
-        <span className="text-zinc-600">{label}</span>
-        <span className={positive ? 'text-green-700 font-medium' : 'text-red-600 font-medium'}>
-          {positive ? `+${pct.toFixed(1)}%` : `${pct.toFixed(1)}%`}
-          <span className="text-zinc-400 font-normal ml-1">{positive ? '여유' : '부족'}</span>
-        </span>
-      </div>
-      <div className="h-2 rounded bg-zinc-100 overflow-hidden">
-        <div
-          className={`h-full rounded transition-all ${positive ? 'bg-green-400' : 'bg-red-400'}`}
-          style={{ width: `${barPct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-export function InsightSummary({ npv, irr, payback, lifetime, discountRate, input }: Props) {
-  const { cells, capexFactors, elecFactors } = useMemo(() => calcProfitabilityMap(input), [input]);
-
-  const baseRowIdx = elecFactors.length - 1 - BASE_FACTOR_IDX;
-  const baseColIdx = BASE_FACTOR_IDX;
-
-  const capexBreakeven = useMemo(
-    () => findCapexBreakeven(cells, baseRowIdx, capexFactors),
-    [cells, baseRowIdx, capexFactors],
-  );
-
-  const elecBreakeven = useMemo(
-    () => findElecBreakeven(cells, elecFactors, baseColIdx),
-    [cells, elecFactors, baseColIdx],
-  );
-
-  // positive = can raise CAPEX by this %, negative = CAPEX must drop by this %
-  const capexMarginPct = capexBreakeven !== null ? (capexBreakeven - 1.0) * 100 : null;
-  // positive = 발전수익 can drop by this %, negative = must rise by this %
-  const elecMarginPct = elecBreakeven !== null ? (1.0 - elecBreakeven) * 100 : null;
-
-  const verdict: Verdict = useMemo(() => {
-    if (npv === null) return 'marginal';
-    if (npv < 0) return 'poor';
-    const irrOk = irr === null || irr >= discountRate;
-    const paybackOk = payback === null || payback <= lifetime;
-    if (irrOk && paybackOk) return 'good';
-    return 'marginal';
-  }, [npv, irr, payback, lifetime, discountRate]);
-
-  const verdictConfig = {
-    good: {
-      label: '투자 적합',
-      bg: 'bg-green-50 border-green-200',
-      badge: 'bg-green-100 text-green-800',
-      dot: 'bg-green-500',
-    },
-    marginal: {
-      label: '경계 구간',
-      bg: 'bg-amber-50 border-amber-200',
-      badge: 'bg-amber-100 text-amber-800',
-      dot: 'bg-amber-400',
-    },
-    poor: {
-      label: '투자 부적합',
-      bg: 'bg-red-50 border-red-200',
-      badge: 'bg-red-100 text-red-800',
-      dot: 'bg-red-500',
-    },
-  }[verdict];
-
-  const npvAccent: 'green' | 'red' | 'neutral' =
-    npv === null ? 'neutral' : npv >= 0 ? 'green' : 'red';
-  const irrAccent: 'green' | 'red' | 'neutral' =
-    irr === null ? 'neutral' : irr >= discountRate ? 'green' : 'red';
-  const paybackAccent: 'green' | 'red' | 'neutral' =
-    payback === null ? 'neutral' : payback <= lifetime ? 'green' : 'red';
-
-  const npvStr = npv === null ? '계산불가' : `${(npv / 1e8).toFixed(1)}억원`;
-  const irrStr = irr === null ? '미수렴' : `${(irr * 100).toFixed(1)}%`;
-  const paybackStr = payback === null ? '미회수' : `${payback.toFixed(1)}년`;
-
-  const bullets = buildBullets(
-    verdict,
-    npv,
-    irr,
-    payback,
-    discountRate,
-    lifetime,
-    capexMarginPct,
-    elecMarginPct,
-  );
-
-  return (
-    <div className={`rounded-lg border p-5 space-y-4 ${verdictConfig.bg}`}>
-      {/* 헤더 */}
-      <div className="flex items-center gap-3">
-        <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${verdictConfig.badge}`}
-        >
-          <span className={`w-2 h-2 rounded-full ${verdictConfig.dot}`} />
-          {verdictConfig.label}
-        </span>
-        <span className="text-sm text-zinc-500">기준 시나리오 투자 진단</span>
-      </div>
-
-      {/* 핵심 지표 */}
-      <div className="flex flex-wrap gap-2">
-        <MetricCard
-          label="NPV"
-          value={npvStr}
-          sub={`할인율 ${(discountRate * 100).toFixed(1)}%`}
-          accent={npvAccent}
-        />
-        <MetricCard
-          label="IRR"
-          value={irrStr}
-          sub={`기준 ${(discountRate * 100).toFixed(1)}%`}
-          accent={irrAccent}
-        />
-        <MetricCard
-          label="회수기간"
-          value={paybackStr}
-          sub={`내용연수 ${lifetime}년`}
-          accent={paybackAccent}
-        />
-      </div>
-
-      {/* 여유율 바 */}
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-zinc-600">NPV=0 도달까지의 여유율</p>
-        <SafetyBar pct={capexMarginPct} label="CAPEX 상승 여유" />
-        <SafetyBar pct={elecMarginPct} label="발전수익 하락 여유" />
-      </div>
-
-      {/* 인사이트 불릿 */}
-      {bullets.length > 0 && (
-        <ul className="space-y-1">
-          {bullets.map((b, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm text-zinc-700">
-              <span className="mt-1 text-zinc-400 shrink-0">•</span>
-              <span>{b}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function buildBullets(
-  verdict: Verdict,
-  npv: number | null,
-  irr: number | null,
-  payback: number | null,
+function deriveInsights(
+  npv20: number | null,
+  irr20: number | null,
   discountRate: number,
-  lifetime: number,
-  capexMargin: number | null,
-  elecMargin: number | null,
-): string[] {
-  const bullets: string[] = [];
-
-  if (verdict === 'good') {
-    if (capexMargin !== null && capexMargin > 0) {
-      bullets.push(
-        `현재 NPV 기준, 설치비가 ${capexMargin.toFixed(0)}% 더 올라도 손익분기를 넘지 않습니다.`,
-      );
-    }
-    if (elecMargin !== null && elecMargin > 0) {
-      bullets.push(
-        `발전수익이 ${elecMargin.toFixed(0)}% 줄어도 NPV가 양(+)을 유지합니다. 전기요금 변동 리스크에 내성이 있습니다.`,
-      );
-    }
-    if (irr !== null && irr >= discountRate) {
-      bullets.push(
-        `IRR(${(irr * 100).toFixed(1)}%)이 할인율(${(discountRate * 100).toFixed(1)}%)을 상회해 자본 조달 비용을 충분히 회수합니다.`,
-      );
-    }
-  } else if (verdict === 'marginal') {
-    if (npv !== null && npv >= 0 && payback !== null && payback > lifetime) {
-      bullets.push(
-        `NPV는 양(+)이지만 회수기간(${payback.toFixed(1)}년)이 내용연수(${lifetime}년)를 초과합니다. 수익 회수가 지연될 수 있습니다.`,
-      );
-    }
-    if (npv !== null && npv >= 0 && irr !== null && irr < discountRate) {
-      bullets.push(
-        `NPV는 양(+)이지만 IRR(${(irr * 100).toFixed(1)}%)이 할인율(${(discountRate * 100).toFixed(1)}%) 미만입니다. 타 투자 대비 수익률이 낮습니다.`,
-      );
-    }
-    if (capexMargin !== null) {
-      if (capexMargin > 0) {
-        bullets.push(
-          `설치비 ${capexMargin.toFixed(0)}% 이내 상승까지만 NPV가 양입니다. 견적 변동에 주의하세요.`,
-        );
-      } else {
-        bullets.push(
-          `현재 설치비를 ${Math.abs(capexMargin).toFixed(0)}% 낮춰야 NPV가 0을 넘습니다.`,
-        );
-      }
-    }
+  sensitivityInput: SensitivityInput,
+  profitabilityMapInput: ProfitabilityMapInput,
+): Insights {
+  let verdict: Verdict;
+  if (npv20 == null || npv20 <= 0) {
+    verdict = 'not_viable';
+  } else if (irr20 != null && irr20 > discountRate) {
+    verdict = 'viable';
   } else {
-    // poor
-    if (capexMargin !== null && capexMargin < 0) {
-      bullets.push(
-        `NPV를 양(+)으로 만들려면 설치비를 ${Math.abs(capexMargin).toFixed(0)}% 줄여야 합니다.`,
-      );
-    }
-    if (elecMargin !== null && elecMargin < 0) {
-      bullets.push(
-        `발전수익이 ${Math.abs(elecMargin).toFixed(0)}% 더 높아져야 손익분기에 도달합니다.`,
-      );
-    }
-    if (capexMargin === null && elecMargin === null) {
-      bullets.push(
-        '현재 그리드 범위(±50%) 내에서 NPV 손익분기점을 찾을 수 없습니다. 근본적인 수익 구조 재검토가 필요합니다.',
-      );
+    verdict = 'marginal';
+  }
+
+  const sensitivityRows = calcSensitivity(sensitivityInput);
+  let topRiskLabel = '-';
+  let topRiskNpvSwing = 0;
+  let topRiskRow = sensitivityRows[0];
+  for (const row of sensitivityRows) {
+    const npvVals = row.scenarios.map((s) => s.npv ?? 0);
+    const swing = Math.max(...npvVals) - Math.min(...npvVals);
+    if (swing > topRiskNpvSwing) {
+      topRiskNpvSwing = swing;
+      topRiskLabel = row.label;
+      topRiskRow = row;
     }
   }
 
-  // MAP_FACTORS coverage note
-  const capexOutOfGrid = capexMargin === null && verdict !== 'poor';
-  if (capexOutOfGrid) {
-    bullets.push(
-      '설치비를 50% 이상 올려도 NPV가 양(+)을 유지합니다. 매우 안정적인 수익 구조입니다.',
-    );
+  let breakEvenThreshold: '10%' | '20%' | null = null;
+  if (topRiskRow) {
+    const npvMinus10 = topRiskRow.scenarios[1].npv; // -10%
+    const npvMinus20 = topRiskRow.scenarios[0].npv; // -20%
+    if (npvMinus10 != null && npvMinus10 < 0) {
+      breakEvenThreshold = '10%';
+    } else if (npvMinus20 != null && npvMinus20 < 0) {
+      breakEvenThreshold = '20%';
+    }
   }
 
-  return bullets.slice(0, 3);
+  const mapResult = calcProfitabilityMap(profitabilityMapInput);
+  const allCells = mapResult.cells.flat();
+  const totalCells = allCells.length;
+  const profitableCells = allCells.filter((c) => c.npv != null && c.npv > 0).length;
+
+  return {
+    verdict,
+    topRiskLabel,
+    topRiskNpvSwing,
+    breakEvenThreshold,
+    profitableCells,
+    totalCells,
+  };
+}
+
+const VERDICT_CONFIG = {
+  viable: {
+    label: '실행 가능',
+    badgeClass: 'bg-green-100 text-green-800 border-green-300',
+    borderClass: 'border-green-200',
+    bgClass: 'bg-green-50',
+  },
+  marginal: {
+    label: '한계적',
+    badgeClass: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    borderClass: 'border-yellow-200',
+    bgClass: 'bg-yellow-50',
+  },
+  not_viable: {
+    label: '실행 불가',
+    badgeClass: 'bg-red-100 text-red-800 border-red-300',
+    borderClass: 'border-red-200',
+    bgClass: 'bg-red-50',
+  },
+};
+
+function fmtBillion(won: number): string {
+  const b = won / 1e8;
+  return b >= 10 ? `${b.toFixed(0)}억원` : `${b.toFixed(1)}억원`;
+}
+
+export function InsightSummary({
+  npv20,
+  irr20,
+  payback,
+  discountRate,
+  sensitivityInput,
+  profitabilityMapInput,
+}: Props) {
+  const insights = useMemo(
+    () => deriveInsights(npv20, irr20, discountRate, sensitivityInput, profitabilityMapInput),
+    [npv20, irr20, discountRate, sensitivityInput, profitabilityMapInput],
+  );
+
+  const cfg = VERDICT_CONFIG[insights.verdict];
+  const profitPct = Math.round((insights.profitableCells / insights.totalCells) * 100);
+
+  const breakEvenMsg =
+    insights.breakEvenThreshold === '10%'
+      ? `${insights.topRiskLabel} 10% 하락 시 NPV 음수 전환 (여유 적음)`
+      : insights.breakEvenThreshold === '20%'
+        ? `${insights.topRiskLabel} 20% 이상 하락 시 NPV 음수 전환`
+        : `±20% 하락 범위 내 NPV 양수 유지`;
+
+  const breakEvenIcon =
+    insights.breakEvenThreshold === '10%' ? '✗' : insights.breakEvenThreshold === '20%' ? '△' : '✓';
+
+  const breakEvenColor =
+    insights.breakEvenThreshold === '10%'
+      ? 'text-red-600'
+      : insights.breakEvenThreshold === '20%'
+        ? 'text-yellow-600'
+        : 'text-green-700';
+
+  return (
+    <div className={`rounded-lg border p-5 space-y-4 ${cfg.bgClass} ${cfg.borderClass}`}>
+      {/* 판정 배지 */}
+      <div className="flex items-center gap-2">
+        <span
+          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${cfg.badgeClass}`}
+        >
+          {cfg.label}
+        </span>
+        <span className="text-sm text-zinc-500">투자 진단 (20년 기준)</span>
+      </div>
+
+      {/* 3개 인사이트 행 */}
+      <div className="space-y-3">
+        {/* ① 최대 리스크 변수 */}
+        <div className="flex items-start gap-3">
+          <span className="text-amber-500 font-bold text-base mt-0.5 shrink-0">⚠</span>
+          <div>
+            <p className="text-sm font-medium text-zinc-800">
+              최대 리스크 변수: {insights.topRiskLabel}
+            </p>
+            <p className="text-xs text-zinc-500">
+              NPV 변동폭 {fmtBillion(insights.topRiskNpvSwing)} — 이 변수가 수익성에 가장 큰 영향
+            </p>
+          </div>
+        </div>
+
+        {/* ② 손익분기 임계점 */}
+        <div className="flex items-start gap-3">
+          <span className={`font-bold text-base mt-0.5 shrink-0 ${breakEvenColor}`}>
+            {breakEvenIcon}
+          </span>
+          <div>
+            <p className="text-sm font-medium text-zinc-800">손익분기 임계점</p>
+            <p className="text-xs text-zinc-500">{breakEvenMsg}</p>
+          </div>
+        </div>
+
+        {/* ③ 수익성 시나리오 비율 */}
+        <div className="flex items-start gap-3">
+          <span className="text-blue-500 font-bold text-base mt-0.5 shrink-0">◈</span>
+          <div>
+            <p className="text-sm font-medium text-zinc-800">수익성 시나리오 {profitPct}%</p>
+            <p className="text-xs text-zinc-500">
+              CAPEX × 발전수익 121개 조합 중 {insights.profitableCells}개에서 NPV &gt; 0
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 하단 보조 정보 */}
+      <div className="border-t border-zinc-200 pt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-400">
+        {npv20 != null && <span>NPV(20년) {fmtBillion(npv20)}</span>}
+        {irr20 != null && (
+          <span>
+            IRR {(irr20 * 100).toFixed(1)}% (기준 {(discountRate * 100).toFixed(1)}%)
+          </span>
+        )}
+        {payback != null && <span>회수기간 {payback.toFixed(1)}년</span>}
+      </div>
+    </div>
+  );
 }

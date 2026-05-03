@@ -126,7 +126,7 @@ export function ProfitabilityMap({ input }: Props) {
   const vMax = Math.max(...allValues);
 
   // NPV=0 경계 선분 (NPV 지표일 때만)
-  const boundarySegments = useMemo(() => {
+  const contourSegments = useMemo(() => {
     if (metric !== 'npv') return [];
     const segs: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
     const rows = cells.length;
@@ -273,21 +273,27 @@ export function ProfitabilityMap({ input }: Props) {
                   </div>
                 ))}
                 {/* NPV=0 경계선 오버레이 */}
-                {boundarySegments.length > 0 && (
+                {contourSegments.length > 0 && (
                   <svg
-                    style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      pointerEvents: 'none',
+                      zIndex: 1,
+                    }}
                     width={gridWidth}
                     height={gridHeight}
                   >
-                    {boundarySegments.map((seg, i) => (
+                    {contourSegments.map((seg, i) => (
                       <line
                         key={i}
                         x1={seg.x1}
                         y1={seg.y1}
                         x2={seg.x2}
                         y2={seg.y2}
-                        stroke="#1d4ed8"
-                        strokeWidth={2}
+                        stroke="#1e293b"
+                        strokeWidth={2.5}
                         strokeLinecap="square"
                       />
                     ))}
@@ -337,9 +343,9 @@ export function ProfitabilityMap({ input }: Props) {
         <span className="text-xs text-zinc-500">{mc.higherIsBetter ? '높음' : '나쁨'}</span>
         <span className="text-xs text-zinc-400 ml-2">■ 기준값 셀</span>
         {metric === 'npv' && (
-          <span className="text-xs text-blue-700 ml-2 flex items-center gap-1">
+          <span className="text-xs text-zinc-600 ml-2 flex items-center gap-1">
             <svg width="16" height="8" style={{ display: 'inline' }}>
-              <line x1="0" y1="4" x2="16" y2="4" stroke="#1d4ed8" strokeWidth="2" />
+              <line x1="0" y1="4" x2="16" y2="4" stroke="#1e293b" strokeWidth="2.5" />
             </svg>
             NPV=0 경계
           </span>
