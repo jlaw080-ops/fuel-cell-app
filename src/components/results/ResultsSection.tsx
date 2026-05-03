@@ -519,8 +519,8 @@ export function ResultsSection({
 
       {/* ── 탭 3: AI 분석 ── */}
       {activeTab === 'ai' && (
-        <div className="space-y-4">
-          <div className="border border-[#3d3a39] rounded-xl p-5 bg-[#1a1a1a] space-y-4">
+        <div className="w-full space-y-4">
+          <div className="w-full border border-[#3d3a39] rounded-xl p-5 bg-[#1a1a1a] space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-[#f2f2f2]">AI 경제성 검토 의견</h3>
               <Button type="button" onClick={onGenerateAi} disabled={aiLoading} size="sm">
@@ -541,7 +541,7 @@ export function ResultsSection({
             )}
 
             {!aiLoading && aiReview && (
-              <div className="text-sm text-[#e2e2e2] leading-relaxed whitespace-pre-wrap">
+              <div className="text-sm text-[#e2e2e2] leading-relaxed whitespace-pre-wrap break-words">
                 {aiReview}
               </div>
             )}
