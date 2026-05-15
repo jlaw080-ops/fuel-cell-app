@@ -36,6 +36,11 @@ export const DEFAULT_BOILER_EFFICIENCY = 0.85;
 export const GAS_TARIFF_FUELCELL = '연료전지전용';
 export const GAS_TARIFF_GENERAL = '일반용';
 
+/** 부가가치세율 (발전수익·열수익·가스요금 공통) */
+export const VAT_RATE = 0.1;
+/** 전력산업기반기금 요율 (발전수익에만 적용) */
+export const ELECTRICITY_FUND_RATE = 0.027;
+
 export function lookupGasUnitPrice(library: GasTariff, match: string): number | null {
   const entry = library.find((g) => g.구분.includes(match));
   return entry ? entry.단가_원per_kW : null;
@@ -56,7 +61,7 @@ export function calcEnergyRevenue(params: CalcRevenueParams): EnergyRevenueOutpu
   const rows: EnergyRevenueRow[] = production.데이터.map((p) => {
     const tariffRow = electricityTariff.데이터.find((t) => t.월 === p.월);
 
-    // 발전수익
+    // 발전수익 (부가세 10% + 전력기금 2.7% 포함)
     let 발전수익: number | null = null;
     if (
       tariffRow &&
@@ -64,22 +69,25 @@ export function calcEnergyRevenue(params: CalcRevenueParams): EnergyRevenueOutpu
       p.월간_최대부하시간_전력생산량_kWh != null &&
       p.계약용량_kW != null
     ) {
-      발전수익 =
+      const raw =
         p.월간_중간부하시간_전력생산량_kWh * tariffRow.중간부하 +
         p.월간_최대부하시간_전력생산량_kWh * tariffRow.최대부하 +
         p.계약용량_kW * baseChargePerKW;
+      발전수익 = raw * (1 + VAT_RATE + ELECTRICITY_FUND_RATE);
     }
 
-    // 열수익 (열로 대체된 가스보일러 연료비)
+    // 열수익 (열로 대체된 가스보일러 연료비, 부가세 10% 포함)
     let 열수익: number | null = null;
     if (p.월간_연료전지_열생산량_kWh != null && generalGasPrice != null && boilerEfficiency > 0) {
-      열수익 = (p.월간_연료전지_열생산량_kWh * generalGasPrice) / boilerEfficiency;
+      const raw = (p.월간_연료전지_열생산량_kWh * generalGasPrice) / boilerEfficiency;
+      열수익 = raw * (1 + VAT_RATE);
     }
 
-    // 가스사용요금
+    // 가스사용요금 (부가세 10% 포함)
     let 가스요금: number | null = null;
     if (p.월간_도시가스사용량_kWh != null && fuelCellGasPrice != null) {
-      가스요금 = p.월간_도시가스사용량_kWh * fuelCellGasPrice;
+      const raw = p.월간_도시가스사용량_kWh * fuelCellGasPrice;
+      가스요금 = raw * (1 + VAT_RATE);
     }
 
     // 최종수익

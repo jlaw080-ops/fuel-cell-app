@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { calcEnergyRevenue, DEFAULT_BOILER_EFFICIENCY } from '../revenue';
+import {
+  calcEnergyRevenue,
+  DEFAULT_BOILER_EFFICIENCY,
+  VAT_RATE,
+  ELECTRICITY_FUND_RATE,
+} from '../revenue';
 import type { z } from 'zod';
 import type { electricityTariffLibrarySchema, gasTariffLibrarySchema } from '@/lib/schemas/library';
 import type { EnergyProductionOutput } from '@/types/outputs';
@@ -59,34 +64,37 @@ function makeProduction(): EnergyProductionOutput {
 }
 
 describe('calcEnergyRevenue', () => {
-  it('1월 발전수익 — 손계산 일치 (중간부하 + 최대부하 + 기본요금)', () => {
+  it('1월 발전수익 — 부가세+전력기금 포함 (중간부하 + 최대부하 + 기본요금)', () => {
     const out = calcEnergyRevenue({
       production: makeProduction(),
       electricityTariff: elecTariff,
       gasTariff,
     });
     const jan = out.데이터[0];
-    const expected = 2480 * 140.4 + 1240 * 197.9 + 5 * 8320;
+    const raw = 2480 * 140.4 + 1240 * 197.9 + 5 * 8320;
+    const expected = raw * (1 + VAT_RATE + ELECTRICITY_FUND_RATE);
     expect(jan.발전_월간총수익_원).toBeCloseTo(expected, 4);
   });
 
-  it('1월 열수익 = 열kWh × 일반가스단가 / 보일러효율(0.85)', () => {
+  it('1월 열수익 = 열kWh × 일반가스단가 / 보일러효율(0.85) × 부가세', () => {
     const out = calcEnergyRevenue({
       production: makeProduction(),
       electricityTariff: elecTariff,
       gasTariff,
     });
-    const expected = (5952 * 5.3072) / DEFAULT_BOILER_EFFICIENCY;
+    const raw = (5952 * 5.3072) / DEFAULT_BOILER_EFFICIENCY;
+    const expected = raw * (1 + VAT_RATE);
     expect(out.데이터[0].열생산_월간총수익_원).toBeCloseTo(expected, 4);
   });
 
-  it('1월 도시가스사용요금 = 가스kWh × 연료전지전용 단가', () => {
+  it('1월 도시가스사용요금 = 가스kWh × 연료전지전용 단가 × 부가세', () => {
     const out = calcEnergyRevenue({
       production: makeProduction(),
       electricityTariff: elecTariff,
       gasTariff,
     });
-    const expected = 10118.4 * 4.01154;
+    const raw = 10118.4 * 4.01154;
+    const expected = raw * (1 + VAT_RATE);
     expect(out.데이터[0].도시가스사용요금_원).toBeCloseTo(expected, 4);
   });
 
@@ -115,7 +123,8 @@ describe('calcEnergyRevenue', () => {
       gasTariff,
       boilerEfficiency: 1.0,
     });
-    expect(out.데이터[0].열생산_월간총수익_원).toBeCloseTo(5952 * 5.3072, 4);
+    const expected = 5952 * 5.3072 * (1 + VAT_RATE);
+    expect(out.데이터[0].열생산_월간총수익_원).toBeCloseTo(expected, 4);
   });
 
   it('production이 null이면 해당 row의 수익도 null', () => {
@@ -146,7 +155,8 @@ describe('calcEnergyRevenue', () => {
       gasTariff,
     });
     const jun = out.데이터[5];
-    const expected = 2480 * 140.2 + 1240 * 222.3 + 5 * 8320;
+    const raw = 2480 * 140.2 + 1240 * 222.3 + 5 * 8320;
+    const expected = raw * (1 + VAT_RATE + ELECTRICITY_FUND_RATE);
     expect(jun.발전_월간총수익_원).toBeCloseTo(expected, 4);
   });
 });
