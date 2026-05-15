@@ -8,7 +8,7 @@
  *
  * recharts 대신 순수 SVG로 구현하여 버전 호환성 문제를 회피.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   calcSensitivity,
   type SensitivityInput,
@@ -19,7 +19,6 @@ import {
 // 상수 & 타입
 // ─────────────────────────────────────────────────────────────
 
-const CHART_WIDTH = 560;
 const BAR_H = 24;
 const BAR_GAP = 10;
 const LABEL_W = 80;
@@ -139,12 +138,26 @@ export function TornadoChart({ input }: Props) {
     y: number;
   } | null>(null);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState(560);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > LABEL_W) setChartWidth(Math.floor(w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const analysis = useMemo(() => calcSensitivity(input), [input]);
   const mc = METRICS.find((m) => m.key === metric)!;
   const rows = useMemo(() => buildRows(analysis, mc), [analysis, mc]);
   const { domainMin, domainMax } = useMemo(() => buildDomain(rows), [rows]);
 
-  const plotW = CHART_WIDTH - LABEL_W;
+  const plotW = chartWidth - LABEL_W;
   const chartH = rows.length * (BAR_H + BAR_GAP) + V_PAD * 2 + AXIS_H;
 
   const toX = (v: number) => ((v - domainMin) / (domainMax - domainMin)) * plotW;
@@ -181,12 +194,8 @@ export function TornadoChart({ input }: Props) {
       </div>
 
       {/* 차트 */}
-      <div className="overflow-x-auto relative">
-        <svg
-          width={CHART_WIDTH}
-          height={chartH}
-          style={{ overflow: 'visible', userSelect: 'none' }}
-        >
+      <div ref={containerRef} className="relative w-full">
+        <svg width={chartWidth} height={chartH} style={{ overflow: 'visible', userSelect: 'none' }}>
           {/* Y축 레이블 + 막대 */}
           {rows.map((row, i) => {
             const barY = V_PAD + i * (BAR_H + BAR_GAP);

@@ -7,7 +7,7 @@
  * 각 셀을 NPV·IRR·회수기간에 따라 빨강→흰→초록 발산형 색상으로 표시.
  * 기준 셀(1.0×1.0)에 테두리 강조.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   calcProfitabilityMap,
   BASE_FACTOR_IDX,
@@ -19,7 +19,6 @@ import {
 // 상수 & 타입
 // ─────────────────────────────────────────────────────────────
 
-const CELL_W = 48;
 const CELL_H = 32;
 const Y_LABEL_W = 52;
 const X_LABEL_H = 40;
@@ -112,10 +111,31 @@ export function ProfitabilityMap({ input }: Props) {
   const [metric, setMetric] = useState<Metric>('npv');
   const [hoveredCell, setHoveredCell] = useState<MapCell | null>(null);
 
+  const outerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = outerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setContainerWidth(Math.floor(w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const result = useMemo(() => calcProfitabilityMap(input), [input]);
   const { cells, capexFactors, elecFactors, baseCapex, baseElecRev, lifetime } = result;
 
   const mc = METRICS.find((m) => m.key === metric)!;
+
+  // 셀 너비 동적 계산 (컨테이너 너비 기반)
+  const colCount = capexFactors.length;
+  const cellW =
+    containerWidth > Y_LABEL_W
+      ? Math.max(32, Math.floor((containerWidth - Y_LABEL_W) / colCount))
+      : 48;
 
   // 전체 셀의 min/max (색상 스케일 계산용)
   const allValues = useMemo(() => {
@@ -138,7 +158,7 @@ export function ProfitabilityMap({ input }: Props) {
         const n2 = cells[r][c + 1].npv;
         if (n1 === null || n2 === null) continue;
         if (n1 >= 0 !== n2 >= 0) {
-          const x = (c + 1) * CELL_W;
+          const x = (c + 1) * cellW;
           segs.push({ x1: x, y1: r * CELL_H, x2: x, y2: (r + 1) * CELL_H });
         }
       }
@@ -151,12 +171,12 @@ export function ProfitabilityMap({ input }: Props) {
         if (n1 === null || n2 === null) continue;
         if (n1 >= 0 !== n2 >= 0) {
           const y = (r + 1) * CELL_H;
-          segs.push({ x1: c * CELL_W, y1: y, x2: (c + 1) * CELL_W, y2: y });
+          segs.push({ x1: c * cellW, y1: y, x2: (c + 1) * cellW, y2: y });
         }
       }
     }
     return segs;
-  }, [cells, metric]);
+  }, [cells, metric, cellW]);
 
   // 기준 셀 (capexFactor=1.0, elecFactor=1.0)
   // elecFactors는 내림차순이므로 기준 행 = elecFactors.length - 1 - BASE_FACTOR_IDX
@@ -175,7 +195,7 @@ export function ProfitabilityMap({ input }: Props) {
   // Y축 레이블 (발전수익 배율 %)
   const yLabels = elecFactors.map((f) => `${Math.round(f * 100)}%`);
 
-  const gridWidth = capexFactors.length * CELL_W;
+  const gridWidth = colCount * cellW;
   const gridHeight = elecFactors.length * CELL_H;
   const totalWidth = Y_LABEL_W + gridWidth;
 
@@ -203,7 +223,7 @@ export function ProfitabilityMap({ input }: Props) {
       </div>
 
       {/* 히트맵 */}
-      <div className="overflow-x-auto">
+      <div ref={outerRef} className="w-full overflow-x-auto">
         <div style={{ width: totalWidth }}>
           {/* 그리드 영역 (Y레이블 + 셀) */}
           <div style={{ display: 'flex' }}>
@@ -245,7 +265,7 @@ export function ProfitabilityMap({ input }: Props) {
                         <div
                           key={colIdx}
                           style={{
-                            width: CELL_W,
+                            width: cellW,
                             height: CELL_H,
                             background: bg,
                             border: isBase
@@ -306,7 +326,7 @@ export function ProfitabilityMap({ input }: Props) {
                 {xLabels.map((lbl, i) => (
                   <div
                     key={i}
-                    style={{ width: CELL_W, fontSize: 9 }}
+                    style={{ width: cellW, fontSize: 9 }}
                     className="flex flex-col items-center justify-start pt-1 text-zinc-600"
                   >
                     <span>{lbl}</span>
